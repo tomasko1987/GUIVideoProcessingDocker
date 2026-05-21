@@ -1,0 +1,907 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Video Processing";
+}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+
+<style>
+    /* ========================= TOP ROW ========================= */
+
+    .top-row {
+        display: flex;
+        gap: 20px;
+        align-items: flex-start;
+        padding: 16px 20px 0 20px;
+    }
+
+    /* RAW Stream — obmedzená šírka (60% menší ako predtým) */
+    .panel-stream {
+        flex: 0 0 38%;
+        min-width: 0;
+    }
+
+    img#stream {
+        width: 100%;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+
+    .stream-label {
+        font-weight: bold;
+        font-size: 1rem;
+        margin-bottom: 6px;
+        color: #555;
+    }
+
+    /* ROI overlay canvas */
+    .stream-container {
+        position: relative;
+        display: block;
+    }
+
+    .roi-canvas {
+        position: absolute;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        pointer-events: none;
+    }
+
+    canvas.roi-canvas {
+        border: none;
+        border-radius: 0;
+    }
+
+    /* Šípkové tlačidlá */
+    .roi-buttons {
+        display: flex;
+        gap: 10px;
+        margin-top: 8px;
+        justify-content: center;
+    }
+
+    .roi-buttons button {
+        width: 44px;
+        height: 44px;
+        font-size: 1.4rem;
+        line-height: 1;
+        cursor: pointer;
+        border: 2px solid #aaa;
+        background: #fff;
+        border-radius: 4px;
+    }
+
+    .roi-buttons button:active {
+        background: #0d6efd;
+        color: white;
+        border-color: #0d6efd;
+    }
+
+    .roi-resize-buttons {
+        display: flex;
+        gap: 10px;
+        margin-top: 6px;
+        justify-content: center;
+    }
+
+    .roi-resize-buttons button {
+        width: 44px;
+        height: 44px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        line-height: 1.1;
+        cursor: pointer;
+        border: 2px solid #6c757d;
+        background: #fff;
+        color: #6c757d;
+        border-radius: 4px;
+    }
+
+    .roi-resize-buttons button:active {
+        background: #6c757d;
+        color: white;
+    }
+
+    /* ========================= DIGIT PANELS (L + P) ========================= */
+
+    .panel-digits {
+        display: flex;
+        gap: 20px;
+        align-items: flex-start;
+    }
+
+    .digit-box {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .digit-img {
+        width: 80px;
+        min-height: 120px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        image-rendering: pixelated;
+        background: #f8f8f8;
+    }
+
+    .digit-side-label {
+        font-weight: bold;
+        font-size: 0.85rem;
+        color: #555;
+    }
+
+    .digit-value {
+        font-size: 2.5rem;
+        font-weight: bold;
+        min-width: 50px;
+        text-align: center;
+    }
+
+    /* ========================= PILL TABY ========================= */
+
+    .tab-bar {
+        display: flex;
+        gap: 8px;
+        padding: 14px 20px 0 20px;
+        align-items: center;
+    }
+
+    .tab-pill {
+        padding: 7px 20px;
+        font-size: 0.95rem;
+        font-weight: 500;
+        cursor: pointer;
+        border: 2px solid #0d6efd;
+        background: #fff;
+        color: #0d6efd;
+        border-radius: 999px;   /* pill tvar */
+        transition: background 0.15s, color 0.15s;
+        white-space: nowrap;
+    }
+
+    .tab-pill:hover {
+        background: #e8f0fe;
+    }
+
+    .tab-pill.active {
+        background: #0d6efd;
+        color: #fff;
+    }
+
+    /* ========================= WORK AREA / TAB OBSAH ========================= */
+
+    .work-area {
+        padding: 14px 20px 20px 20px;
+        border-top: 1px solid #e0e0e0;
+        margin-top: 10px;
+    }
+
+    .tab-pane {
+        display: none;
+    }
+
+    .tab-pane.active {
+        display: block;
+    }
+
+    canvas#chart {
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        width: 100% !important;
+    }
+
+    .graph-buttons {
+        display: flex;
+        gap: 10px;
+        margin-top: 10px;
+    }
+
+    .graph-buttons button {
+        flex: 1;
+        padding: 8px;
+        font-size: 1rem;
+        cursor: pointer;
+        border: 2px solid #aaa;
+        background: #fff;
+        border-radius: 4px;
+    }
+
+    .graph-buttons button.active {
+        background: #0d6efd;
+        color: white;
+        border-color: #0d6efd;
+    }
+
+    #btnRefresh {
+        flex: 0 0 auto;
+        padding: 8px 16px;
+        font-size: 1.1rem;
+        border: 2px solid #aaa;
+        background: #fff;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    #btnRefresh:active {
+        background: #198754;
+        color: white;
+        border-color: #198754;
+    }
+
+    /* ========================= SETTINGS GRID ========================= */
+
+    .settings-grid {
+        display: grid;
+        grid-template-columns: 160px 100px auto;
+        gap: 10px 14px;
+        align-items: center;
+        max-width: 420px;
+    }
+
+    .settings-grid label {
+        font-weight: 500;
+        font-size: 0.95rem;
+    }
+
+    .settings-grid input[type="number"] {
+        padding: 5px 8px;
+        font-size: 0.95rem;
+        border: 1px solid #aaa;
+        border-radius: 4px;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .settings-hint {
+        font-size: 0.8rem;
+        color: #888;
+    }
+
+    .settings-save-btn {
+        padding: 7px 22px;
+        font-size: 0.95rem;
+        font-weight: 500;
+        cursor: pointer;
+        border: 2px solid #198754;
+        background: #fff;
+        color: #198754;
+        border-radius: 4px;
+    }
+
+    .settings-save-btn:hover  { background: #d4edda; }
+    .settings-save-btn:active { background: #198754; color: white; }
+</style>
+
+<!-- ========================= TOP ROW ========================= -->
+<div class="top-row">
+
+    <div class="panel-stream">
+        <div class="stream-label">RAW Stream</div>
+        <div class="stream-container">
+            <img id="stream" src="/stream" alt="Live stream" />
+            <canvas id="roiCanvas" class="roi-canvas"></canvas>
+        </div>
+        <div class="roi-buttons">
+            <button onclick="moveRoi('left')"  title="Posunúť ROI doľava">&#8592;</button>
+            <button onclick="moveRoi('up')"    title="Posunúť ROI hore">&#8593;</button>
+            <button onclick="moveRoi('down')"  title="Posunúť ROI dole">&#8595;</button>
+            <button onclick="moveRoi('right')" title="Posunúť ROI doprava">&#8594;</button>
+        </div>
+        <div class="roi-resize-buttons">
+            <button onclick="resizeRoi('wider')"    title="Rozšíriť ROI">W+</button>
+            <button onclick="resizeRoi('narrower')" title="Zúžiť ROI">W−</button>
+            <button onclick="resizeRoi('taller')"   title="Zvýšiť ROI">H+</button>
+            <button onclick="resizeRoi('shorter')"  title="Znížiť ROI">H−</button>
+        </div>
+    </div>
+
+    <div class="panel-digits">
+        <div class="digit-box">
+            <div class="digit-side-label">L</div>
+            <img id="leftImg" class="digit-img" src="/left" alt="Ľavá číslica" />
+            <div class="digit-value" id="displayL">-</div>
+        </div>
+        <div class="digit-box">
+            <div class="digit-side-label">P</div>
+            <img id="rightImg" class="digit-img" src="/right" alt="Pravá číslica" />
+            <div class="digit-value" id="displayP">-</div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ========================= PILL TAB BAR ========================= -->
+<div class="tab-bar">
+    <button class="tab-pill active" onclick="showTab('algoritmus', this)">Algoritmus</button>
+    <button class="tab-pill" onclick="showTab('graf', this)">Graf</button>
+    <button class="tab-pill" onclick="showTab('bilateral', this)">Bilateral</button>
+    <button class="tab-pill" onclick="showTab('clahe', this)">CLAHE</button>
+    <button class="tab-pill" onclick="showTab('threshold', this)">Threshold</button>
+    <button class="tab-pill" onclick="showTab('morphology', this)">Morphology</button>
+    <button class="tab-pill" onclick="showTab('split', this)">Split</button>
+</div>
+
+<!-- ========================= WORK AREA ========================= -->
+<div class="work-area">
+
+    <!-- TAB: Algoritmus (default) -->
+    <div id="tab-algoritmus" class="tab-pane active">
+        <div style="display:flex; flex-direction:column; gap:14px; max-width:400px;">
+
+            <div style="display:flex; align-items:center; gap:14px;">
+                <label for="selAlgorithm" style="font-weight:500; width:160px; flex-shrink:0;">Algoritmus</label>
+                <select id="selAlgorithm" onchange="onAlgorithmChange()"
+                        style="padding:5px 10px; font-size:0.95rem; border:1px solid #aaa; border-radius:4px; width:160px; cursor:pointer;">
+                    <option value="ONNX">ONNX</option>
+                    <option value="SevenSegment">7 Segment</option>
+                </select>
+            </div>
+
+            <!-- Viditeľné len pri ONNX -->
+            <div id="rowOnnxConfidence" style="display:flex; align-items:center; gap:14px;">
+                <label for="inpOnnxConfidence" style="font-weight:500; width:160px; flex-shrink:0;">Min. confidence</label>
+                <input id="inpOnnxConfidence" type="number" min="0.0" max="1.0" step="0.01"
+                       style="padding:5px 8px; font-size:0.95rem; border:1px solid #aaa; border-radius:4px; width:100px;" />
+                <span style="font-size:0.8rem; color:#888;">0.0 – 1.0</span>
+            </div>
+
+            <!-- Vždy viditeľné -->
+            <div style="display:flex; align-items:center; gap:14px;">
+                <label for="inpEvalInterval" style="font-weight:500; width:160px; flex-shrink:0;">Eval interval (s)</label>
+                <input id="inpEvalInterval" type="number" min="1" max="3600" step="1"
+                       style="padding:5px 8px; font-size:0.95rem; border:1px solid #aaa; border-radius:4px; width:100px;" />
+                <span style="font-size:0.8rem; color:#888;">1 – 3600 s</span>
+            </div>
+
+            <!-- Viditeľné len pri 7 Segment -->
+            <div id="rowSegThreshold" style="display:none; align-items:center; gap:14px;">
+                <label for="inpSegThreshold" style="font-weight:500; width:160px; flex-shrink:0;">Seg. threshold</label>
+                <input id="inpSegThreshold" type="number" min="0.05" max="1.0" step="0.05"
+                       style="padding:5px 8px; font-size:0.95rem; border:1px solid #aaa; border-radius:4px; width:100px;" />
+                <span style="font-size:0.8rem; color:#888;">0.05 – 1.0</span>
+            </div>
+
+        </div>
+        <div style="margin-top:14px; display:flex; gap:10px; align-items:center;">
+            <button class="settings-save-btn" onclick="saveAlgorithm()">Uložiť</button>
+            <span id="algorithmStatus" style="font-size:0.875rem;"></span>
+        </div>
+    </div>
+
+    <!-- TAB: Graf -->
+    <div id="tab-graf" class="tab-pane">
+        <canvas id="chart" height="83"></canvas>
+        <div class="graph-buttons">
+            <button id="btn1"  onclick="loadChart(1)"  class="active">1 hod</button>
+            <button id="btn3"  onclick="loadChart(3)">3 hod</button>
+            <button id="btn12" onclick="loadChart(12)">12 hod</button>
+            <button id="btnRefresh" onclick="loadChart(activeHours)" title="Obnov teraz">&#8635;</button>
+        </div>
+        <div id="dbWarning" style="display:none; color:#dc3545; font-size:0.875rem; margin-top:6px;">
+            &#9888; Databáza nie je dostupná
+        </div>
+    </div>
+
+    <!-- TAB: Bilateral -->
+    <div id="tab-bilateral" class="tab-pane">
+        <div class="settings-grid">
+
+            <label for="inpBilateralD">D (diameter)</label>
+            <input id="inpBilateralD" type="number" min="1" max="31" step="1" />
+            <span class="settings-hint">1 – 31</span>
+
+            <label for="inpSigmaColor">SigmaColor</label>
+            <input id="inpSigmaColor" type="number" min="1" max="200" step="1" />
+            <span class="settings-hint">1 – 200</span>
+
+            <label for="inpSigmaSpace">SigmaSpace</label>
+            <input id="inpSigmaSpace" type="number" min="1" max="200" step="1" />
+            <span class="settings-hint">1 – 200</span>
+
+        </div>
+        <div style="margin-top:14px; display:flex; gap:10px; align-items:center;">
+            <button class="settings-save-btn" onclick="saveBilateral()">Uložiť</button>
+            <span id="bilateralStatus" style="font-size:0.875rem;"></span>
+        </div>
+    </div>
+
+    <!-- TAB: CLAHE -->
+    <div id="tab-clahe" class="tab-pane">
+        <div class="settings-grid">
+
+            <label for="inpClaheClip">ClipLimit</label>
+            <input id="inpClaheClip" type="number" min="0.5" max="40" step="0.5" />
+            <span class="settings-hint">0.5 – 40</span>
+
+            <label for="inpClaheTileX">TileGridSize X</label>
+            <input id="inpClaheTileX" type="number" min="2" max="32" step="1" />
+            <span class="settings-hint">2 – 32</span>
+
+            <label for="inpClaheTileY">TileGridSize Y</label>
+            <input id="inpClaheTileY" type="number" min="2" max="32" step="1" />
+            <span class="settings-hint">2 – 32</span>
+
+        </div>
+        <div style="margin-top:14px; display:flex; gap:10px; align-items:center;">
+            <button class="settings-save-btn" onclick="saveClahe()">Uložiť</button>
+            <span id="claheStatus" style="font-size:0.875rem;"></span>
+        </div>
+    </div>
+
+    <!-- TAB: Threshold -->
+    <div id="tab-threshold" class="tab-pane">
+        <div class="settings-grid">
+
+            <label for="inpBlockSize">Block Size</label>
+            <input id="inpBlockSize" type="number" min="3" max="999" step="2" />
+            <span class="settings-hint">3 – 999 (nepárne)</span>
+
+            <label for="inpThreshC">C</label>
+            <input id="inpThreshC" type="number" min="0" max="20" step="0.5" />
+            <span class="settings-hint">0 – 20</span>
+
+        </div>
+        <div style="margin-top:14px; display:flex; gap:10px; align-items:center;">
+            <button class="settings-save-btn" onclick="saveThreshold()">Uložiť</button>
+            <span id="thresholdStatus" style="font-size:0.875rem;"></span>
+        </div>
+    </div>
+
+    <!-- TAB: Split -->
+    <div id="tab-split" class="tab-pane">
+        <div class="settings-grid">
+
+            <label for="inpFromLeft">From Left (%)</label>
+            <input id="inpFromLeft" type="number" min="1" max="99" step="1" />
+            <span class="settings-hint">1 – 99 %</span>
+
+            <label for="inpFromRight">From Right (%)</label>
+            <input id="inpFromRight" type="number" min="1" max="99" step="1" />
+            <span class="settings-hint">1 – 99 %</span>
+
+        </div>
+        <div style="margin-top:14px; display:flex; gap:10px; align-items:center;">
+            <button class="settings-save-btn" onclick="saveSplit()">Uložiť</button>
+            <span id="splitStatus" style="font-size:0.875rem;"></span>
+        </div>
+    </div>
+
+    <!-- TAB: Morphology -->
+    <div id="tab-morphology" class="tab-pane">
+        <div class="settings-grid">
+
+            <label for="inpKernelSize">Kernel Size</label>
+            <input id="inpKernelSize" type="number" min="1" max="21" step="2" />
+            <span class="settings-hint">1 – 21 (nepárne)</span>
+
+            <label for="inpOpenIter">Open Iterations</label>
+            <input id="inpOpenIter" type="number" min="1" max="10" step="1" />
+            <span class="settings-hint">1 – 10</span>
+
+            <label for="inpCloseIter">Close Iterations</label>
+            <input id="inpCloseIter" type="number" min="1" max="10" step="1" />
+            <span class="settings-hint">1 – 10</span>
+
+            <label for="inpMinArea">Min Area</label>
+            <input id="inpMinArea" type="number" min="1" max="5000" step="1" />
+            <span class="settings-hint">1 – 5000</span>
+
+        </div>
+        <div style="margin-top:14px; display:flex; gap:10px; align-items:center;">
+            <button class="settings-save-btn" onclick="saveMorphology()">Uložiť</button>
+            <span id="morphologyStatus" style="font-size:0.875rem;"></span>
+        </div>
+    </div>
+
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+
+    <script>
+        // ========================= PILL TAB NAVIGÁCIA =========================
+
+        function showTab(name, btn) {
+            document.querySelectorAll(".tab-pane").forEach(p => p.classList.remove("active"));
+            document.querySelectorAll(".tab-pill").forEach(b => b.classList.remove("active"));
+            document.getElementById("tab-" + name).classList.add("active");
+            btn.classList.add("active");
+            if (name === "algoritmus") loadAlgorithm();
+            if (name === "graf")       loadChart(activeHours);
+            if (name === "bilateral")  loadBilateral();
+            if (name === "clahe")      loadClahe();
+            if (name === "threshold")  loadThreshold();
+            if (name === "morphology") loadMorphology();
+            if (name === "split")      loadSplit();
+        }
+
+        // ========================= ALGORITMUS TAB =========================
+
+        async function loadAlgorithm() {
+            try {
+                const resp = await fetch("/api/pipeline/algorithm");
+                if (!resp.ok) return;
+                const d = await resp.json();
+                document.getElementById("selAlgorithm").value      = d.algorithm;
+                document.getElementById("inpSegThreshold").value   = d.segmentOnThreshold;
+                document.getElementById("inpOnnxConfidence").value = d.onnxMinConfidence;
+                document.getElementById("inpEvalInterval").value   = d.numEvalIntervalSeconds;
+                onAlgorithmChange();
+            } catch (e) { console.warn("loadAlgorithm error:", e); }
+        }
+
+        function onAlgorithmChange() {
+            const is7Seg = document.getElementById("selAlgorithm").value === "SevenSegment";
+            document.getElementById("rowSegThreshold").style.display   = is7Seg ? "flex" : "none";
+            document.getElementById("rowOnnxConfidence").style.display = is7Seg ? "none" : "flex";
+        }
+
+        async function saveAlgorithm() {
+            const status = document.getElementById("algorithmStatus");
+            const body = {
+                algorithm:              document.getElementById("selAlgorithm").value,
+                segmentOnThreshold:     parseFloat(document.getElementById("inpSegThreshold").value)  || 0.35,
+                onnxMinConfidence:      parseFloat(document.getElementById("inpOnnxConfidence").value) || 0.89,
+                numEvalIntervalSeconds: parseInt(document.getElementById("inpEvalInterval").value)    || 10
+            };
+            try {
+                const resp = await fetch("/api/pipeline/algorithm", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(body)
+                });
+                if (resp.ok) {
+                    status.style.color = "#198754";
+                    status.textContent = "✓ Uložené";
+                } else {
+                    status.style.color = "#dc3545";
+                    status.textContent = "✗ Chyba " + resp.status;
+                }
+            } catch (e) {
+                status.style.color = "#dc3545";
+                status.textContent = "✗ " + e.message;
+            }
+            setTimeout(() => status.textContent = "", 3000);
+        }
+
+        // ========================= THRESHOLD TAB =========================
+
+        async function loadThreshold() {
+            try {
+                const resp = await fetch("/api/pipeline/threshold");
+                if (!resp.ok) return;
+                const d = await resp.json();
+                document.getElementById("inpBlockSize").value = d.blockSize;
+                document.getElementById("inpThreshC").value   = d.c;
+            } catch (e) { console.warn("loadThreshold error:", e); }
+        }
+
+        async function saveThreshold() {
+            const status = document.getElementById("thresholdStatus");
+            const body = {
+                blockSize: parseInt(document.getElementById("inpBlockSize").value),
+                c:         parseFloat(document.getElementById("inpThreshC").value)
+            };
+            try {
+                const resp = await fetch("/api/pipeline/threshold", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(body)
+                });
+                if (resp.ok) {
+                    const d = await resp.json();
+                    document.getElementById("inpBlockSize").value = d.blockSize; // server mohol upraviť na nepárne
+                    status.style.color = "#198754";
+                    status.textContent = "✓ Uložené (BlockSize=" + d.blockSize + ")";
+                } else {
+                    status.style.color = "#dc3545";
+                    status.textContent = "✗ Chyba " + resp.status;
+                }
+            } catch (e) {
+                status.style.color = "#dc3545";
+                status.textContent = "✗ " + e.message;
+            }
+            setTimeout(() => status.textContent = "", 3000);
+        }
+
+        // ========================= BILATERAL TAB =========================
+
+        async function loadBilateral() {
+            try {
+                const resp = await fetch("/api/pipeline/bilateral");
+                if (!resp.ok) return;
+                const d = await resp.json();
+                document.getElementById("inpBilateralD").value     = d.d;
+                document.getElementById("inpSigmaColor").value     = d.sigmaColor;
+                document.getElementById("inpSigmaSpace").value     = d.sigmaSpace;
+            } catch (e) { console.warn("loadBilateral error:", e); }
+        }
+
+        async function saveBilateral() {
+            const status = document.getElementById("bilateralStatus");
+            const body = {
+                d:          parseInt(document.getElementById("inpBilateralD").value),
+                sigmaColor: parseInt(document.getElementById("inpSigmaColor").value),
+                sigmaSpace: parseInt(document.getElementById("inpSigmaSpace").value)
+            };
+            try {
+                const resp = await fetch("/api/pipeline/bilateral", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(body)
+                });
+                if (resp.ok) {
+                    status.style.color = "#198754";
+                    status.textContent = "✓ Uložené";
+                } else {
+                    status.style.color = "#dc3545";
+                    status.textContent = "✗ Chyba " + resp.status;
+                }
+            } catch (e) {
+                status.style.color = "#dc3545";
+                status.textContent = "✗ " + e.message;
+            }
+            setTimeout(() => status.textContent = "", 3000);
+        }
+
+        // ========================= CLAHE TAB =========================
+
+        async function loadClahe() {
+            try {
+                const resp = await fetch("/api/pipeline/clahe");
+                if (!resp.ok) return;
+                const d = await resp.json();
+                document.getElementById("inpClaheClip").value  = d.clipLimit;
+                document.getElementById("inpClaheTileX").value = d.tileGridSizeX;
+                document.getElementById("inpClaheTileY").value = d.tileGridSizeY;
+            } catch (e) { console.warn("loadClahe error:", e); }
+        }
+
+        async function saveClahe() {
+            const status = document.getElementById("claheStatus");
+            const body = {
+                clipLimit:    parseFloat(document.getElementById("inpClaheClip").value),
+                tileGridSizeX: parseInt(document.getElementById("inpClaheTileX").value),
+                tileGridSizeY: parseInt(document.getElementById("inpClaheTileY").value)
+            };
+            try {
+                const resp = await fetch("/api/pipeline/clahe", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(body)
+                });
+                if (resp.ok) {
+                    status.style.color = "#198754";
+                    status.textContent = "✓ Uložené";
+                } else {
+                    status.style.color = "#dc3545";
+                    status.textContent = "✗ Chyba " + resp.status;
+                }
+            } catch (e) {
+                status.style.color = "#dc3545";
+                status.textContent = "✗ " + e.message;
+            }
+            setTimeout(() => status.textContent = "", 3000);
+        }
+
+        // ========================= SPLIT TAB =========================
+
+        async function loadSplit() {
+            try {
+                const resp = await fetch("/api/pipeline/split");
+                if (!resp.ok) return;
+                const d = await resp.json();
+                document.getElementById("inpFromLeft").value  = d.fromLeft;
+                document.getElementById("inpFromRight").value = d.fromRight;
+            } catch (e) { console.warn("loadSplit error:", e); }
+        }
+
+        async function saveSplit() {
+            const status = document.getElementById("splitStatus");
+            const body = {
+                fromLeft:  parseInt(document.getElementById("inpFromLeft").value),
+                fromRight: parseInt(document.getElementById("inpFromRight").value)
+            };
+            try {
+                const resp = await fetch("/api/pipeline/split", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(body)
+                });
+                if (resp.ok) {
+                    status.style.color = "#198754";
+                    status.textContent = "✓ Uložené";
+                } else {
+                    status.style.color = "#dc3545";
+                    status.textContent = "✗ Chyba " + resp.status;
+                }
+            } catch (e) {
+                status.style.color = "#dc3545";
+                status.textContent = "✗ " + e.message;
+            }
+            setTimeout(() => status.textContent = "", 3000);
+        }
+
+        // ========================= MORPHOLOGY TAB =========================
+
+        async function loadMorphology() {
+            try {
+                const resp = await fetch("/api/pipeline/morphology");
+                if (!resp.ok) return;
+                const d = await resp.json();
+                document.getElementById("inpKernelSize").value = d.kernelSize;
+                document.getElementById("inpOpenIter").value   = d.openIterations;
+                document.getElementById("inpCloseIter").value  = d.closeIterations;
+                document.getElementById("inpMinArea").value    = d.minArea;
+            } catch (e) { console.warn("loadMorphology error:", e); }
+        }
+
+        async function saveMorphology() {
+            const status = document.getElementById("morphologyStatus");
+            const body = {
+                kernelSize:      parseInt(document.getElementById("inpKernelSize").value),
+                openIterations:  parseInt(document.getElementById("inpOpenIter").value),
+                closeIterations: parseInt(document.getElementById("inpCloseIter").value),
+                minArea:         parseInt(document.getElementById("inpMinArea").value)
+            };
+            try {
+                const resp = await fetch("/api/pipeline/morphology", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(body)
+                });
+                if (resp.ok) {
+                    const d = await resp.json();
+                    document.getElementById("inpKernelSize").value = d.kernelSize; // server mohol upraviť na nepárne
+                    status.style.color = "#198754";
+                    status.textContent = "✓ Uložené (KernelSize=" + d.kernelSize + ")";
+                } else {
+                    status.style.color = "#dc3545";
+                    status.textContent = "✗ Chyba " + resp.status;
+                }
+            } catch (e) {
+                status.style.color = "#dc3545";
+                status.textContent = "✗ " + e.message;
+            }
+            setTimeout(() => status.textContent = "", 3000);
+        }
+
+        // ========================= CHART.JS INICIALIZÁCIA =========================
+
+        const ctx = document.getElementById("chart").getContext("2d");
+        const chart = new Chart(ctx, {
+            type: "line",
+            data: {
+                datasets: [{
+                    label: "Rozpoznaná hodnota",
+                    data: [],
+                    borderColor: "#0d6efd",
+                    backgroundColor: "rgba(13,110,253,0.1)",
+                    pointRadius: 3,
+                    tension: 0.2
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        type: "time",
+                        time: { tooltipFormat: "HH:mm:ss", displayFormats: { minute: "HH:mm" } },
+                        title: { display: true, text: "Čas" }
+                    },
+                    y: {
+                        title: { display: true, text: "Hodnota" }
+                    }
+                }
+            }
+        });
+
+        // ========================= NAČÍTANIE DÁT =========================
+
+        let activeHours = 1;
+
+        function setActiveButton(hours) {
+            document.getElementById("btn1").classList.toggle("active",  hours === 1);
+            document.getElementById("btn3").classList.toggle("active",  hours === 3);
+            document.getElementById("btn12").classList.toggle("active", hours === 12);
+        }
+
+        async function loadChart(hours) {
+            activeHours = hours;
+            setActiveButton(hours);
+            const response = await fetch(`/api/readings?hours=${hours}`);
+            if (!response.ok) { console.warn("loadChart HTTP chyba", response.status); return; }
+            const data = await response.json();
+            document.getElementById("dbWarning").style.display = data.error ? "block" : "none";
+            chart.data.datasets[0].data = data.items.map(r => ({
+                x: new Date(r.timestamp),
+                y: parseFloat(r.value)
+            }));
+            chart.update();
+        }
+
+        // Načítanie aktívnej karty pri štarte (Algoritmus je default)
+        loadAlgorithm();
+
+        // ========================= SIGNALR =========================
+
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/hub")
+            .withAutomaticReconnect()
+            .build();
+
+        connection.on("NewReading", function (leftDigit, rightDigit, text, timestamp) {
+            document.getElementById("displayL").innerText = leftDigit !== null ? leftDigit : "?";
+            document.getElementById("displayP").innerText = rightDigit !== null ? rightDigit : "?";
+        });
+
+        connection.onclose(function ()     { console.warn("SignalR: spojenie zatvorené"); });
+        connection.onreconnected(function (){ console.log("SignalR: znovu pripojené"); });
+        connection.start()
+            .then(() => console.log("SignalR: pripojené na /hub"))
+            .catch(err => console.error("SignalR: chyba pripojenia:", err));
+
+        // ========================= ROI OVERLAY =========================
+
+        const roiImg    = document.getElementById("stream");
+        const roiCanvas = document.getElementById("roiCanvas");
+        const roiCtx    = roiCanvas.getContext("2d");
+
+        function drawRoi(roi) {
+            roiCanvas.width  = roiImg.clientWidth;
+            roiCanvas.height = roiImg.clientHeight;
+            roiCtx.clearRect(0, 0, roiCanvas.width, roiCanvas.height);
+            roiCtx.strokeStyle = "rgba(0, 255, 0, 0.85)";
+            roiCtx.lineWidth   = 2;
+            roiCtx.strokeRect(
+                roi.x     / 100 * roiCanvas.width,
+                roi.y     / 100 * roiCanvas.height,
+                roi.width / 100 * roiCanvas.width,
+                roi.height/ 100 * roiCanvas.height
+            );
+        }
+
+        async function fetchRoi() {
+            try {
+                const resp = await fetch("/api/roi");
+                if (!resp.ok) return;
+                drawRoi(await resp.json());
+            } catch (e) { console.warn("fetchRoi error:", e); }
+        }
+
+        async function moveRoi(dir) {
+            try {
+                const resp = await fetch(`/api/roi/move?dir=${dir}`, { method: "POST" });
+                if (!resp.ok) { console.warn("moveRoi chyba", resp.status); return; }
+                drawRoi(await resp.json());
+            } catch (e) { console.warn("moveRoi error:", e); }
+        }
+
+        async function resizeRoi(dir) {
+            try {
+                const resp = await fetch(`/api/roi/resize?dir=${dir}`, { method: "POST" });
+                if (!resp.ok) { console.warn("resizeRoi chyba", resp.status); return; }
+                drawRoi(await resp.json());
+            } catch (e) { console.warn("resizeRoi error:", e); }
+        }
+
+        new ResizeObserver(() => fetchRoi()).observe(roiImg);
+        roiImg.addEventListener("load", fetchRoi);
+        fetchRoi();
+
+        // ========================= DIGIT IMAGES AUTO-REFRESH =========================
+
+        const leftImg  = document.getElementById("leftImg");
+        const rightImg = document.getElementById("rightImg");
+
+        setInterval(() => {
+            const t = Date.now();
+            leftImg.src  = "/left?t="  + t;
+            rightImg.src = "/right?t=" + t;
+        }, 2000);
+    </script>
+}

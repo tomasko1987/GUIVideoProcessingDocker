@@ -1,0 +1,14 @@
+services:
+  guivideoprocessing:
+    build: .
+    image: guivideoprocessing:latest
+    container_name: guivideoprocessing
+    ports:
+      - "5250:5250"
+    volumes:
+      - ./appsettings.json:/app/appsettings.json
+      - ./logs:/app/logs
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:5250
+    restart: unless-stopped

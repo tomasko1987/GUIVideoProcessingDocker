@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GUIVideoProcessing.Web – Dokumentácia nasadenia</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f4f6f9;
+      color: #2c3e50;
+      line-height: 1.7;
+    }
+
+    header {
+      background: #1a2a3a;
+      color: #fff;
+      padding: 40px 60px;
+    }
+    header h1 { font-size: 2rem; margin-bottom: 6px; }
+    header p  { color: #90a4ae; font-size: 0.95rem; }
+
+    nav {
+      background: #253545;
+      padding: 16px 60px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    nav a {
+      color: #90caf9;
+      text-decoration: none;
+      font-size: 0.9rem;
+      white-space: nowrap;
+    }
+    nav a:hover { color: #fff; }
+
+    main {
+      max-width: 960px;
+      margin: 40px auto;
+      padding: 0 24px 80px;
+    }
+
+    h2 {
+      font-size: 1.5rem;
+      color: #1a2a3a;
+      border-left: 5px solid #1976d2;
+      padding-left: 14px;
+      margin: 48px 0 20px;
+    }
+    h3 {
+      font-size: 1.1rem;
+      color: #1565c0;
+      margin: 28px 0 10px;
+    }
+    h4 {
+      font-size: 0.95rem;
+      color: #37474f;
+      margin: 18px 0 6px;
+      font-weight: 600;
+    }
+
+    p  { margin-bottom: 12px; }
+    ul { margin: 8px 0 12px 24px; }
+    li { margin-bottom: 4px; }
+
+    .card {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      padding: 28px 32px;
+      margin-bottom: 24px;
+    }
+
+    .step {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      margin-bottom: 20px;
+    }
+    .step-num {
+      background: #1976d2;
+      color: #fff;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      min-width: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.9rem;
+      margin-top: 2px;
+    }
+    .step-body { flex: 1; }
+    .step-body strong { display: block; margin-bottom: 4px; color: #1a2a3a; }
+
+    pre {
+      background: #1e2a35;
+      color: #e0f2f1;
+      border-radius: 6px;
+      padding: 16px 20px;
+      overflow-x: auto;
+      font-size: 0.85rem;
+      line-height: 1.6;
+      margin: 10px 0 16px;
+      position: relative;
+    }
+    code { font-family: 'Cascadia Code', 'Consolas', monospace; }
+    pre code { color: inherit; }
+
+    .label {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-bottom: 6px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .label-win  { background: #0d47a1; color: #fff; }
+    .label-ssh  { background: #1b5e20; color: #fff; }
+    .label-file { background: #4a148c; color: #fff; }
+    .label-info { background: #e65100; color: #fff; }
+
+    .note {
+      background: #e3f2fd;
+      border-left: 4px solid #1976d2;
+      border-radius: 0 6px 6px 0;
+      padding: 12px 16px;
+      margin: 12px 0;
+      font-size: 0.9rem;
+    }
+    .warn {
+      background: #fff3e0;
+      border-left: 4px solid #f57c00;
+      border-radius: 0 6px 6px 0;
+      padding: 12px 16px;
+      margin: 12px 0;
+      font-size: 0.9rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0 20px;
+      font-size: 0.88rem;
+    }
+    th {
+      background: #1976d2;
+      color: #fff;
+      padding: 10px 14px;
+      text-align: left;
+    }
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid #e0e0e0;
+      vertical-align: top;
+    }
+    tr:nth-child(even) td { background: #f9f9f9; }
+
+    footer {
+      text-align: center;
+      color: #90a4ae;
+      font-size: 0.82rem;
+      padding: 30px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>GUIVideoProcessing.Web</h1>
+  <p>Dokumentácia nasadenia Docker kontajnera na Ubuntu VM &nbsp;·&nbsp; Máj 2026</p>
+</header>
+
+<nav>
+  <a href="#kapitola1">1. Dockerfile</a>
+  <a href="#kapitola2">2. Build &amp; prenos na VM</a>
+  <a href="#kapitola3">3. Spustenie kontajnera</a>
+  <a href="#kapitola4">4. appsettings.json</a>
+  <a href="#kapitola5">5. Logy</a>
+  <a href="#kapitola6">6. Časté problémy</a>
+  <a href="#kapitola7">7. Code Update</a>
+  <a href="#kapitola8">8. Docker vs Win</a>
+</nav>
+
+<main>
+
+  <!-- ═══════════════════════════════════════════════════ -->
+  <h2 id="kapitola1">1. Dockerfile</h2>
+
+  <div class="card">
+    <p>
+      Dockerfile je súbor s inštrukciami, ako zostaviť Docker image. Nachádza sa v koreni projektu:
+      <code>c:\Apps\Docker\GUIVideoProcessing.Web\Dockerfile</code>
+    </p>
+    <p>Má dve fázy (<strong>multi-stage build</strong>):</p>
+
+    <h3>Fáza 1 – Build (SDK)</h3>
+    <p>Použije oficiálny .NET 9 SDK image, skopíruje zdrojové súbory a zostaví aplikáciu.</p>
+
+    <h3>Fáza 2 – Runtime (Ubuntu 22.04)</h3>
+    <p>
+      Výsledný image je postavený na <strong>Ubuntu 22.04</strong> (nie na Debian Bookworm).
+      Dôvod: knižnica <code>libOpenCvSharpExtern.so</code> (OpenCV natívny bridge) vyžaduje
+      konkrétne verzie systémových knižníc (<code>libjpeg-turbo8</code>, <code>libavcodec58</code> atď.),
+      ktoré sú dostupné práve v Ubuntu 22.04.
+    </p>
+
+    <span class="label label-file">Dockerfile</span>
+    <pre><code># ── Fáza 1: Build ─────────────────────────────────────────
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+WORKDIR /src
+COPY *.csproj .
+RUN dotnet restore
+COPY . .
+RUN dotnet publish -c Release -o /app/publish
+
+# ── Fáza 2: Runtime ───────────────────────────────────────
+FROM ubuntu:22.04 AS runtime
+WORKDIR /app
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Inštalácia ASP.NET Core 9 runtime
+RUN apt-get update \
+    &amp;&amp; apt-get install -y wget ca-certificates \
+    &amp;&amp; wget https://packages.microsoft.com/config/ubuntu/22.04/packages-microsoft-prod.deb \
+         -O packages-microsoft-prod.deb \
+    &amp;&amp; dpkg -i packages-microsoft-prod.deb \
+    &amp;&amp; rm packages-microsoft-prod.deb \
+    &amp;&amp; apt-get update \
+    &amp;&amp; apt-get install -y aspnetcore-runtime-9.0 \
+    &amp;&amp; rm -rf /var/lib/apt/lists/*
+
+# Natívne knižnice pre OpenCV
+RUN apt-get update &amp;&amp; apt-get install -y \
+    libgdiplus \
+    libx11-6 \
+    libxext6 \
+    libglib2.0-0 \
+    libgomp1 \
+    libjpeg-turbo8 \
+    libavcodec58 \
+    libavformat58 \
+    libavutil56 \
+    libswscale5 \
+    libtesseract4 \
+    libgtk2.0-0 \
+    libopenexr25 \
+    &amp;&amp; rm -rf /var/lib/apt/lists/*
+
+COPY --from=build /app/publish .
+
+RUN adduser --disabled-password --gecos "" appuser \
+    &amp;&amp; chown -R appuser /app
+USER appuser
+
+EXPOSE 5250
+ENTRYPOINT ["dotnet", "GUIVideoProcessing.Web.dll"]</code></pre>
+
+    <div class="note">
+      <strong>Prečo Ubuntu 22.04 a nie mcr.microsoft.com/dotnet/aspnet:9.0?</strong><br>
+      Oficiálny ASP.NET Core runtime image je postavený na Debian Bookworm, ktorý má
+      iné (novšie) verzie knižníc ako tie, pre ktoré bol skompilovaný OpenCvSharp4.
+      Ubuntu 22.04 obsahuje správne verzie (<code>libjpeg-turbo8</code>, <code>libavcodec58</code>
+      atď.) a OpenCV sa v ňom načíta bez chýb.
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════ -->
+  <h2 id="kapitola2">2. Build a prenos na VM</h2>
+
+  <div class="card">
+    <div class="warn">
+      Všetky príkazy v tejto kapitole sa spúšťajú vo <strong>Windows PowerShell</strong>,
+      nie v SSH relácii na Ubuntu VM.
+    </div>
+
+    <h3>Krok 1 – Zbaliť projekt</h3>
+    <p>
+      Adresáre <code>bin/</code>, <code>obj/</code>, <code>.vs/</code> a <code>wwwroot/lib/</code>
+      sa vynechávajú — sú buď zbytočné (Docker zostaví vlastné binárky) alebo veľké (npm knižnice).
+    </p>
+    <span class="label label-win">Windows PowerShell</span>
+    <pre><code>Get-ChildItem "c:\Apps\Docker\GUIVideoProcessing.Web" `
+    -Exclude "bin","obj",".vs","wwwroot\lib" |
+  Compress-Archive -DestinationPath "c:\Apps\Docker\project.zip" -Force</code></pre>
+
+    <div class="note">
+      Parameter <code>-Force</code> automaticky prepíše existujúci <code>project.zip</code>.
+      Nie je potrebné ho pred tým manuálne mazať.
+    </div>
+
+    <h3>Krok 2 – Preniesť ZIP na VM</h3>
+    <span class="label label-win">Windows PowerShell</span>
+    <pre><code>scp "c:\Apps\Docker\project.zip" tom@192.168.50.103:/opt/guivideoprocessing/</code></pre>
+
+    <h3>Krok 3 – Pripojiť sa na VM cez SSH</h3>
+    <span class="label label-win">Windows PowerShell</span>
+    <pre><code>ssh tom@192.168.50.103</code></pre>
+
+    <h3>Krok 4 – Zmazať starý projekt a rozbaliť nový</h3>
+    <span class="label label-ssh">Ubuntu VM (SSH)</span>
+    <pre><code>sudo rm -rf /opt/guivideoprocessing/project
+unzip /opt/guivideoprocessing/project.zip -d /opt/guivideoprocessing/project</code></pre>
+
+    <h3>Krok 5 – Zostaviť Docker image</h3>
+    <p>Build prebieha priamo na Ubuntu VM — stiahne všetky knižnice a zostaví image.</p>
+    <span class="label label-ssh">Ubuntu VM (SSH)</span>
+    <pre><code>cd /opt/guivideoprocessing/project
+docker build -t guivideoprocessing:latest .</code></pre>
+
+    <div class="note">
+      Build trvá 3–10 minút (závisí od rýchlosti internetu VM). Na konci musíš vidieť:<br>
+      <code>Successfully built &lt;id&gt;</code><br>
+      <code>Successfully tagged guivideoprocessing:latest</code>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════ -->
+  <h2 id="kapitola3">3. Spustenie kontajnera</h2>
+
+  <div class="card">
+    <h3>Zastaviť a odstrániť starý kontajner</h3>
+    <span class="label label-ssh">Ubuntu VM (SSH)</span>
+    <pre><code>docker stop guivideoprocessing &amp;&amp; docker rm guivideoprocessing</code></pre>
+
+    <h3>Spustiť nový kontajner</h3>
+    <span class="label label-ssh">Ubuntu VM (SSH)</span>
+    <pre><code>docker run -d \
+  --name guivideoprocessing \
+  -p 5250:5250 \
+  --restart unless-stopped \
+  -v /opt/guivideoprocessing/logs:/app/logs \
+  -v /opt/guivideoprocessing/appsettings.json:/app/appsettings.json \
+  guivideoprocessing:latest</code></pre>
+
+    <h4>Vysvetlenie parametrov:</h4>
+    <table>
+      <tr><th>Parameter</th><th>Význam</th></tr>
+      <tr><td><code>-d</code></td><td>Kontajner beží na pozadí (detached)</td></tr>
+      <tr><td><code>--name guivideoprocessing</code></td><td>Názov kontajnera pre ďalšie príkazy</td></tr>
+      <tr><td><code>-p 5250:5250</code></td><td>Port 5250 VM → port 5250 kontajnera</td></tr>
+      <tr><td><code>--restart unless-stopped</code></td><td>Automatický reštart po páde alebo reboote VM</td></tr>
+      <tr><td><code>-v .../logs:/app/logs</code></td><td>Logy sú uložené mimo kontajnera (prežijú reštart)</td></tr>
+      <tr><td><code>-v .../appsettings.json:/app/appsettings.json</code></td><td>Konfig je mimo kontajnera — možno ho meniť bez rebuildu</td></tr>
+    </table>
+
+    <h3>Overiť stav</h3>
+    <span class="label label-ssh">Ubuntu VM (SSH)</span>
+    <pre><code>docker ps</code></pre>
+    <p>Kontajner musí mať stav <code>Up X seconds</code> v stĺpci STATUS.</p>
+
+    <h3>Webové rozhranie</h3>
+    <p>Po spustení otvor v prehliadači:</p>
+    <pre><code>http://192.168.50.103:5250</code></pre>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════ -->
+  <h2 id="kapitola4">4. appsettings.json</h2>
+
+  <div class="card">
+    <p>
+      Konfiguračný súbor je uložený <strong>mimo kontajnera</strong> na Ubuntu VM:
+      <code>/opt/guivideoprocessing/appsettings.json</code><br>
+      Kontajner ho číta cez bind mount. Zmeny sa prejavia okamžite — bez reštartu kontajnera.
+    </p>
+
+    <h3>Kompletný appsettings.json</h3>
+    <span class="label label-file">appsettings.json</span>
+    <pre><code>{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*",
+  "Kestrel": {
+    "Endpoints": {
+      "Http": {
+        "Url": "http://0.0.0.0:5250"
+      }
+    }
+  },
+  "Camera": {
+    "Urls": [ "http://192.168.50.96:81/stream" ],
+    "ConnectTimeoutSec": 15,
+    "FrameTimeoutSec": 5,
+    "ReconnectBackoffMaxSec": 60,
+    "LedIntensity": 14,
+    "CamFramesize": 13,
+    "CamBrightness": 2,
+    "CamContrast": 2,
+    "CamSaturation": 2
+  },
+  "InfluxDB": {
+    "Enabled": true,
+    "Url": "http://192.168.50.103:8086",
+    "Token": "&lt;tvoj_token&gt;",
+    "Org": "HomeAutomation",
+    "Bucket": "Boiler_Temperature",
+    "ReconnectDelaySeconds": 10
+  },
+  "Pipeline": {
+    "ROIX": 52,
+    "ROIY": 23,
+    "ROIWidth": 13,
+    "ROIHeight": 19,
+    "BilateralD": 5,
+    "BilateralSigmaColor": 40,
+    "BilateralSigmaSpace": 40,
+    "CLAHEClipLimit": 5.0,
+    "CLAHETileGridSizeX": 2,
+    "CLAHETileGridSizeY": 2,
+    "AdaptiveThresholdBlockSize": 101,
+    "AdaptiveThresholdC": 5,
+    "MorphologyKernelSize": 3,
+    "MorphologyOpenIterations": 1,
+    "MorphologyCloseIterations": 1,
+    "MinArea": 80,
+    "FromLeft": 49,
+    "FromRight": 49,
+    "NumEvalIntervalSeconds": 1,
+    "OnnxModelPath": "model/model.onnx",
+    "OnnxMinConfidence": 0.89,
+    "StoreSample": true,
+    "RecognitionAlgorithm": "ONNX",
+    "SegmentOnThreshold": 0.35,
+    "SourceTag": "T3"
+  }
+}</code></pre>
+
+    <h3>Popis kľúčových parametrov</h3>
+
+    <h4>Sekcia Camera</h4>
+    <table>
+      <tr><th>Kľúč</th><th>Popis</th></tr>
+      <tr><td><code>Urls</code></td><td>URL MJPEG streamu kamery (ESP32-CAM)</td></tr>
+      <tr><td><code>ConnectTimeoutSec</code></td><td>Timeout pri pripájaní ku kamere (sekundy)</td></tr>
+      <tr><td><code>FrameTimeoutSec</code></td><td>Timeout čakania na ďalší frame</td></tr>
+      <tr><td><code>ReconnectBackoffMaxSec</code></td><td>Maximálny čas čakania pred opätovným pokusом</td></tr>
+    </table>
+
+    <h4>Sekcia InfluxDB</h4>
+    <table>
+      <tr><th>Kľúč</th><th>Popis</th></tr>
+      <tr><td><code>Enabled</code></td><td><code>true</code> = zapisuje do InfluxDB, <code>false</code> = vypnuté</td></tr>
+      <tr><td><code>Url</code></td><td>Adresa InfluxDB servera</td></tr>
+      <tr><td><code>Token</code></td><td>API token pre autentifikáciu</td></tr>
+      <tr><td><code>Org</code> / <code>Bucket</code></td><td>Organizácia a bucket kde sa ukladajú dáta</td></tr>
+    </table>
+
+    <h4>Sekcia Pipeline</h4>
+    <table>
+      <tr><th>Kľúč</th><th>Popis</th></tr>
+      <tr><td><code>ROIX / ROIY</code></td><td>Poloha ľavého horného rohu ROI (v % šírky/výšky frame)</td></tr>
+      <tr><td><code>ROIWidth / ROIHeight</code></td><td>Rozmery ROI (v %)</td></tr>
+      <tr><td><code>RecognitionAlgorithm</code></td><td><code>ONNX</code> alebo <code>SevenSegment</code></td></tr>
+      <tr><td><code>OnnxMinConfidence</code></td><td>Minimálna konfidencia ONNX (0.0–1.0). Pod touto hodnotou = <code>?</code></td></tr>
+      <tr><td><code>NumEvalIntervalSeconds</code></td><td>Každých N sekúnd sa vyhodnotí frame (1 = každú sekundu)</td></tr>
+      <tr><td><code>FromLeft / FromRight</code></td><td>Percentá šírky ROI pre ľavú/pravú číslicu</td></tr>
+      <tr><td><code>StoreSample</code></td><td><code>true</code> = ukladá PNG výrezy číslic pre tréning modelu</td></tr>
+      <tr><td><code>SegmentOnThreshold</code></td><td>Prah pre SevenSegment algoritmus (0.0–1.0)</td></tr>
+    </table>
+
+    <div class="note">
+      <strong>Kestrel URL musí byť <code>http://0.0.0.0:5250</code></strong> – nie <code>localhost</code>.
+      V Docker kontajneri by <code>localhost</code> nebolo prístupné zvonku.
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════ -->
+  <h2 id="kapitola5">5. Logy</h2>
+
+  <div class="card">
+    <p>
+      Logy sú zapisované na dva miesta súčasne: do konzoly kontajnera a do súborov v priečinku
+      <code>/opt/guivideoprocessing/logs/</code> na Ubuntu VM.
+    </p>
+
+    <h3>Zobraziť logy v termináli</h3>
+
+    <h4>Posledných 30 riadkov</h4>
+    <span class="label label-ssh">Ubuntu VM (SSH)</span>
+    <pre><code>docker logs guivideoprocessing 2>&amp;1 | tail -30</code></pre>
+
+    <h4>Sledovať logy v reálnom čase</h4>
+    <span class="label label-ssh">Ubuntu VM (SSH)</span>
+    <pre><code>docker logs -f guivideoprocessing 2>&amp;1</code></pre>
+    <p>Ukončíš stlačením <code>Ctrl + C</code>.</p>
+
+    <h4>Filtrovať len rozpoznávanie číslic</h4>
+    <span class="label label-ssh">Ubuntu VM (SSH)</span>
+    <pre><code>docker logs guivideoprocessing 2>&amp;1 | grep -E "ONNX|SevenSegment|Error" | tail -20</code></pre>
+
+    <h4>Filtrovať len chyby</h4>
+    <span class="label label-ssh">Ubuntu VM (SSH)</span>
+    <pre><code>docker logs guivideoprocessing 2>&amp;1 | grep -E "error|Error|Exception|fail" | tail -30</code></pre>
+
+    <h3>Stiahnutie log súborov na Windows</h3>
+    <p>
+      Log súbory sú uložené mimo kontajnera na VM v priečinku
+      <code>/opt/guivideoprocessing/logs/</code>.
+      Môžeš ich stiahnuť príkazom <code>scp</code> vo Windows PowerShell.
+    </p>
+
+    <h4>Zobraziť dostupné log súbory</h4>
+    <span class="label label-ssh">Ubuntu VM (SSH)</span>
+    <pre><code>ls -la /opt/guivideoprocessing/logs/</code></pre>
+
+    <h4>Stiahnuť konkrétny log súbor</h4>
+    <span class="label label-win">Windows PowerShell</span>
+    <pre><code>scp tom@192.168.50.103:/opt/guivideoprocessing/logs/log_20260519.txt "c:\Logs\"</code></pre>
+
+    <h4>Stiahnuť všetky log súbory naraz</h4>
+    <span class="label label-win">Windows PowerShell</span>
+    <pre><code>scp -r tom@192.168.50.103:/opt/guivideoprocessing/logs "c:\Logs\"</code></pre>
+
+    <div class="note">
+      <strong>Formát log súborov:</strong><br>
+      Súbory sa menujú <code>log_YYYY-MM-DD.txt</code> a rotujú denne.
+      Po dosiahnutí 5 MB sa vytvorí ďalší súbor s príponou <code>_001</code>, <code>_002</code> atď.
+    </div>
+
+    <h3>Formát jedného riadku logu</h3>
+    <pre><code>2026-05-17 14:47:01.456 | INFO | GUIVideoProcessing.Web.Services.ImagePipelineService | ONNX: Left=5, Right=8</code></pre>
+    <table>
+      <tr><th>Stĺpec</th><th>Popis</th></tr>
+      <tr><td>Timestamp</td><td>Dátum a čas záznamu</td></tr>
+      <tr><td>Level</td><td><code>INFO</code>, <code>WARN</code>, <code>EROR</code></td></tr>
+      <tr><td>SourceContext</td><td>Trieda ktorá log zapísala</td></tr>
+      <tr><td>Message</td><td>Samotná správa</td></tr>
+    </table>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════ -->
+  <h2 id="kapitola6">6. Časté problémy</h2>
+
+  <div class="card">
+    <h3>Kamera sa nepripája (Connection timeout)</h3>
+    <p>
+      V logoch sa opakuje <code>MJPEG: Connection timeout after 15s. Will retry.</code>
+    </p>
+    <ul>
+      <li>Skontroluj či je ESP32-CAM fyzicky zapnutá</li>
+      <li>Skontroluj či je pripojená k WiFi sieti</li>
+      <li>Overiť dostupnosť: <code>ping 192.168.50.96</code> z Ubuntu VM</li>
+      <li>Skontrolovať URL v <code>appsettings.json</code> → <code>Camera:Urls</code></li>
+    </ul>
+
+    <h3>appsettings.json – Read-only file system</h3>
+    <p>
+      Chyba <code>Read-only file system: '/app/appsettings.json'</code> sa objaví ak je
+      kontajner spustený s <code>:ro</code> na konci mount parametra.
+    </p>
+    <p>Oprava – spusti kontajner <strong>bez</strong> <code>:ro</code>:</p>
+    <pre><code>-v /opt/guivideoprocessing/appsettings.json:/app/appsettings.json</code></pre>
+
+    <h3>Zmeny nastavení sa neprejavia bez reštartu</h3>
+    <p>
+      Na Linuxe v Docker kontajneri s bind-mountovaným súborom
+      <code>FileSystemWatcher</code> nespoľahlivo detekuje zmeny súboru.
+      Aplikácia volá <code>IConfigurationRoot.Reload()</code> po každom zápise
+      do <code>appsettings.json</code> — zmeny sa prejavia okamžite bez reštartu.
+    </p>
+
+    <h3>Číslice sa nezobrazujú (/left alebo /right vracia prázdny obrázok)</h3>
+    <ul>
+      <li>Pipeline nespracúva framy → kamera nie je dostupná</li>
+      <li>Skontroluj logy: <code>docker logs guivideoprocessing 2>&amp;1 | grep -E "ONNX|SevenSegment"</code></li>
+      <li>ROI je mimo obrazu → uprav <code>ROIX</code>, <code>ROIY</code> v GUI alebo appsettings.json</li>
+    </ul>
+
+    <h3>Port 5250 nie je dostupný z prehliadača</h3>
+    <ul>
+      <li>Skontroluj či kontajner beží: <code>docker ps</code></li>
+      <li>Skontroluj Kestrel URL v appsettings.json: musí byť <code>http://0.0.0.0:5250</code></li>
+      <li>Skontroluj firewall na Ubuntu VM: port 5250 musí byť otvorený</li>
+    </ul>
+
+    <h3>docker build zlyhá – knižnica not found</h3>
+    <p>
+      Po úspešnom builde spusti v kontajneri:
+    </p>
+    <pre><code>docker exec guivideoprocessing ldd /app/runtimes/linux-x64/native/libOpenCvSharpExtern.so | grep "not found"</code></pre>
+    <p>
+      Ak vypíše nejakú knižnicu, je potrebné ju pridať do Dockerfile do sekcie
+      <code>apt-get install</code> a znova buildn­úť.
+    </p>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════ -->
+  <h2 id="kapitola7">7. Code Update</h2>
+
+  <div class="card">
+    <p>
+      Ak zmeníš zdrojový kód aplikácie (C#, Razor Pages, JS, CSS…), je potrebné
+      zostaviť nový Docker image a nasadiť ho. <strong>Zmena kódu si vždy vyžaduje rebuild.</strong>
+      Jedinou výnimkou je <code>appsettings.json</code> — ten sa mení priamo na VM bez rebuildu.
+    </p>
+
+    <div class="note">
+      <strong>Čo nevyžaduje rebuild:</strong> zmena <code>appsettings.json</code> (ROI, algoritmus, InfluxDB…)<br>
+      <strong>Čo vyžaduje rebuild:</strong> akákoľvek zmena v <code>.cs</code>, <code>.cshtml</code>,
+      <code>.js</code>, <code>.css</code>, <code>Dockerfile</code> alebo <code>.csproj</code> súboroch.
+    </div>
+
+    <h3>Postup – krok za krokom</h3>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <strong>Uprav kód vo Visual Studio / VS Code (Windows)</strong>
+        <p>Vykonaj potrebné zmeny v zdrojových súboroch projektu.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <strong>Zbaliť projekt do ZIP</strong>
+        <span class="label label-win">Windows PowerShell</span>
+        <pre><code>Get-ChildItem "c:\Apps\Docker\GUIVideoProcessing.Web" `
+    -Exclude "bin","obj",".vs","wwwroot\lib" |
+  Compress-Archive -DestinationPath "c:\Apps\Docker\project.zip" -Force</code></pre>
+        <p>Parameter <code>-Force</code> prepíše existujúci ZIP automaticky.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <strong>Preniesť ZIP na Ubuntu VM</strong>
+        <span class="label label-win">Windows PowerShell</span>
+        <pre><code>scp "c:\Apps\Docker\project.zip" tom@192.168.50.103:/opt/guivideoprocessing/</code></pre>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <strong>Pripojiť sa na VM</strong>
+        <span class="label label-win">Windows PowerShell</span>
+        <pre><code>ssh tom@192.168.50.103</code></pre>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-body">
+        <strong>Zmazať starý projekt a rozbaliť nový</strong>
+        <span class="label label-ssh">Ubuntu VM (SSH)</span>
+        <pre><code>sudo rm -rf /opt/guivideoprocessing/project
+unzip /opt/guivideoprocessing/project.zip -d /opt/guivideoprocessing/project</code></pre>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">6</div>
+      <div class="step-body">
+        <strong>Zostaviť nový Docker image</strong>
+        <span class="label label-ssh">Ubuntu VM (SSH)</span>
+        <pre><code>cd /opt/guivideoprocessing/project
+docker build -t guivideoprocessing:latest .</code></pre>
+        <p>Na konci musíš vidieť <code>Successfully built</code> a <code>Successfully tagged guivideoprocessing:latest</code>.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">7</div>
+      <div class="step-body">
+        <strong>Zastaviť starý a spustiť nový kontajner</strong>
+        <span class="label label-ssh">Ubuntu VM (SSH)</span>
+        <pre><code>docker stop guivideoprocessing &amp;&amp; docker rm guivideoprocessing
+
+docker run -d \
+  --name guivideoprocessing \
+  -p 5250:5250 \
+  --restart unless-stopped \
+  -v /opt/guivideoprocessing/logs:/app/logs \
+  -v /opt/guivideoprocessing/appsettings.json:/app/appsettings.json \
+  guivideoprocessing:latest</code></pre>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">8</div>
+      <div class="step-body">
+        <strong>Overiť spustenie</strong>
+        <span class="label label-ssh">Ubuntu VM (SSH)</span>
+        <pre><code>docker ps
+docker logs guivideoprocessing 2>&amp;1 | grep -E "ONNX|SevenSegment|Error" | tail -20</code></pre>
+        <p>Kontajner musí mať stav <code>Up</code> a v logoch by sa mali objaviť výsledky rozpoznávania.</p>
+      </div>
+    </div>
+
+    <h3>Rýchly prehľad príkazov (všetko naraz)</h3>
+    <p>Ak chceš mať všetko na jednom mieste — skopíruj a spusti postupne:</p>
+
+    <span class="label label-win">Windows PowerShell</span>
+    <pre><code># Krok 1-3: zbaliť a preniesť
+Get-ChildItem "c:\Apps\Docker\GUIVideoProcessing.Web" `
+    -Exclude "bin","obj",".vs","wwwroot\lib" |
+  Compress-Archive -DestinationPath "c:\Apps\Docker\project.zip" -Force
+
+scp "c:\Apps\Docker\project.zip" tom@192.168.50.103:/opt/guivideoprocessing/</code></pre>
+
+    <span class="label label-ssh">Ubuntu VM (SSH)</span>
+    <pre><code># Krok 4-7: rozbaliť, buildn­úť a nasadiť
+sudo rm -rf /opt/guivideoprocessing/project
+unzip /opt/guivideoprocessing/project.zip -d /opt/guivideoprocessing/project
+cd /opt/guivideoprocessing/project
+docker build -t guivideoprocessing:latest .
+docker stop guivideoprocessing &amp;&amp; docker rm guivideoprocessing
+docker run -d \
+  --name guivideoprocessing \
+  -p 5250:5250 \
+  --restart unless-stopped \
+  -v /opt/guivideoprocessing/logs:/app/logs \
+  -v /opt/guivideoprocessing/appsettings.json:/app/appsettings.json \
+  guivideoprocessing:latest
+docker ps</code></pre>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════ -->
+  <h2 id="kapitola8">8. Docker vs Win – Porovnanie projektov</h2>
+
+  <div class="card">
+    <p>
+      Existujú dve verzie projektu:
+    </p>
+    <ul>
+      <li><strong>Windows verzia:</strong> <code>C:\Apps\GUIVideoProcessing.Web</code> — spúšťa sa priamo ako aplikácia na Windows 11</li>
+      <li><strong>Docker verzia:</strong> <code>C:\Apps\Docker\GUIVideoProcessing.Web</code> — nasadzuje sa do Docker kontajnera na Ubuntu VM</li>
+    </ul>
+    <p style="margin-top:12px;">
+      Väčšina kódu je <strong>identická</strong>. Rozdiely sú minimálne a cielené — každá zmena mala konkrétny dôvod.
+      Nižšie sú popísané všetky rozdiely súbor po súbore.
+    </p>
+  </div>
+
+  <!-- ─── 1. csproj ─────────────────────────────────────── -->
+  <div class="card">
+    <h3>1. GUIVideoProcessing.Web.csproj — NuGet balíky</h3>
+
+    <h4>Windows verzia</h4>
+    <span class="label label-file">Windows projekt</span>
+    <pre><code>&lt;PackageReference Include="OpenCvSharp4.Windows" Version="4.13.0.20260226" /&gt;</code></pre>
+
+    <h4>Docker verzia</h4>
+    <span class="label label-file">Docker projekt</span>
+    <pre><code>&lt;PackageReference Include="OpenCvSharp4.Windows"                   Version="4.13.0.20260302" /&gt;
+&lt;PackageReference Include="OpenCvSharp4.official.runtime.linux-x64" Version="4.13.0.20260302" /&gt;</code></pre>
+
+    <h4>Vysvetlenie</h4>
+    <p>
+      <code>OpenCvSharp4.Windows</code> obsahuje natívne DLL knižnice pre Windows
+      (<code>OpenCvSharpExtern.dll</code>). Na Linuxe tieto DLL nefungujú.
+    </p>
+    <p>
+      Pre Docker kontajner (Linux) je preto pridaný balík
+      <code>OpenCvSharp4.official.runtime.linux-x64</code>, ktorý obsahuje natívnu knižnicu
+      <code>libOpenCvSharpExtern.so</code> pre Linux x64.
+    </p>
+    <p>
+      Oba balíky môžu existovať v jednom projekte súčasne — .NET si pri builde automaticky vyberie
+      správnu platformu (Windows DLL alebo Linux .so).
+    </p>
+    <p>
+      Verzia balíka bola zároveň aktualizovaná z <code>20260226</code> na <code>20260302</code>
+      kvôli kompatibilite s novšou verziou natívnych knižníc na Ubuntu 22.04.
+    </p>
+  </div>
+
+  <!-- ─── 2. Program.cs ─────────────────────────────────── -->
+  <div class="card">
+    <h3>2. Program.cs — HTTPS presmerovanie</h3>
+
+    <h4>Windows verzia</h4>
+    <span class="label label-file">Windows projekt</span>
+    <pre><code>// Presmeruj HTTP → HTTPS automaticky
+app.UseHttpsRedirection();</code></pre>
+
+    <h4>Docker verzia</h4>
+    <span class="label label-file">Docker projekt</span>
+    <pre><code>// UseHttpsRedirection() — vypnuté, aplikácia beží v Docker len cez HTTP</code></pre>
+
+    <h4>Vysvetlenie</h4>
+    <p>
+      Na Windowse ASP.NET Core automaticky presmeruje HTTP požiadavky na HTTPS.
+      To je žiaduce pri lokálnom spustení, kde má aplikácia vlastný HTTPS certifikát.
+    </p>
+    <p>
+      V Docker kontajneri táto funkcia spôsobovala chybu — kontajner nemal nakonfigurovaný
+      HTTPS certifikát, takže každá HTTP požiadavka skončila presmerovaním na HTTPS,
+      ktoré nefungovalo. Výsledok: prázdna stránka v prehliadači.
+    </p>
+    <p>
+      V Docker prostredí sa HTTPS rieši na úrovni reverse proxy (napr. nginx) pred kontajnerom.
+      Samotná aplikácia komunikuje cez čisté HTTP.
+    </p>
+  </div>
+
+  <!-- ─── 3. appsettings.json ───────────────────────────── -->
+  <div class="card">
+    <h3>3. appsettings.json — Kestrel URL binding</h3>
+
+    <h4>Windows verzia</h4>
+    <span class="label label-file">Windows projekt</span>
+    <pre><code>"Kestrel": {
+  "Endpoints": {
+    "Http": {
+      "Url": "http://localhost:5250"
+    }
+  }
+}</code></pre>
+
+    <h4>Docker verzia</h4>
+    <span class="label label-file">Docker projekt</span>
+    <pre><code>"Kestrel": {
+  "Endpoints": {
+    "Http": {
+      "Url": "http://0.0.0.0:5250"
+    }
+  }
+}</code></pre>
+
+    <h4>Vysvetlenie</h4>
+    <p>
+      <code>localhost</code> znamená, že aplikácia počúva <strong>len na loopback rozhraní</strong>
+      (127.0.0.1) — prístupná iba z toho istého počítača. Na Windowse je to správne správanie
+      pre lokálnu aplikáciu.
+    </p>
+    <p>
+      V Docker kontajneri má každý kontajner vlastnú sieťovú kartu s vlastným
+      <code>localhost</code>. Keby aplikácia počúvala na <code>localhost</code>,
+      požiadavky z hostiteľa (Ubuntu VM) by sa k nej nikdy nedostali.
+    </p>
+    <p>
+      <code>0.0.0.0</code> znamená <strong>počúvaj na všetkých sieťových rozhraniach</strong>
+      — vrátane toho, cez ktoré Docker mapuje port <code>5250</code> z hostiteľa do kontajnera.
+    </p>
+  </div>
+
+  <!-- ─── 4. RoiController ──────────────────────────────── -->
+  <div class="card">
+    <h3>4. RoiController.cs — okamžitý reload konfigurácie</h3>
+
+    <h4>Windows verzia</h4>
+    <span class="label label-file">Windows projekt</span>
+    <pre><code>private readonly IConfiguration _config;
+
+public RoiController(IConfiguration config, IWebHostEnvironment env, ILogger&lt;RoiController&gt; logger)
+{
+    _config = config;
+    _env    = env;
+    _logger = logger;
+}
+
+// Po zápise do súboru:
+System.IO.File.WriteAllText(filePath, json);
+// (žiadny reload — spolieha sa na reloadOnChange)</code></pre>
+
+    <h4>Docker verzia</h4>
+    <span class="label label-file">Docker projekt</span>
+    <pre><code>private readonly IConfiguration _config;
+private readonly IConfigurationRoot _configRoot;   // ← nové
+
+public RoiController(IConfiguration config, IWebHostEnvironment env, ILogger&lt;RoiController&gt; logger)
+{
+    _config     = config;
+    _configRoot = (IConfigurationRoot)config;       // ← nové
+    _env        = env;
+    _logger     = logger;
+}
+
+// Po zápise do súboru:
+System.IO.File.WriteAllText(filePath, json);
+_configRoot.Reload();                               // ← nové</code></pre>
+
+    <p><code>_configRoot.Reload()</code> je pridané v metódach: <code>MoveRoi</code> a <code>ResizeRoi</code>.</p>
+
+    <h4>Vysvetlenie</h4>
+    <p>
+      ASP.NET Core štandardne sleduje zmeny v <code>appsettings.json</code> cez
+      <code>FileSystemWatcher</code> (<code>reloadOnChange=true</code>) a automaticky
+      obnovuje <code>IConfiguration</code> v pamäti.
+    </p>
+    <p>
+      Na Windowse toto funguje spoľahlivo. Na Linuxe v Docker kontajneri s
+      <strong>bind-mountovaným</strong> súborom však <code>FileSystemWatcher</code>
+      (interne používa <code>inotify</code>) <strong>nespoľahlivo detekuje zmeny</strong>
+      súboru zapísaného cez <code>File.WriteAllText()</code>. Výsledok: zmena ROI v GUI
+      sa prejavila až po reštarte kontajnera.
+    </p>
+    <p>
+      Riešenie: po každom <code>File.WriteAllText()</code> sa zavolá
+      <code>_configRoot.Reload()</code>, ktorý okamžite znovu načíta celý
+      <code>appsettings.json</code> priamo do pamäte — bez čakania na
+      <code>FileSystemWatcher</code>.
+    </p>
+  </div>
+
+  <!-- ─── 5. PipelineController ────────────────────────── -->
+  <div class="card">
+    <h3>5. PipelineController.cs — okamžitý reload konfigurácie</h3>
+
+    <p>Rovnaká zmena ako v <code>RoiController.cs</code>. Pridaný <code>_configRoot</code>
+    a <code>_configRoot.Reload()</code> po každom zápise do <code>appsettings.json</code>.</p>
+
+    <p>Týka sa všetkých SET metód:</p>
+    <ul>
+      <li><code>SetBilateral</code></li>
+      <li><code>SetClahe</code></li>
+      <li><code>SetAlgorithm</code></li>
+      <li><code>SetThreshold</code></li>
+      <li><code>SetMorphology</code></li>
+      <li><code>SetSplit</code></li>
+    </ul>
+
+    <div class="note">
+      Na Windowse táto zmena nemá žiadny negatívny efekt — <code>Reload()</code> len
+      zopakuje to, čo by sa aj tak stalo automaticky o chvíľu neskôr.
+    </div>
+  </div>
+
+  <!-- ─── 6. Dockerfile + .dockerignore ────────────────── -->
+  <div class="card">
+    <h3>6. Dockerfile a .dockerignore — nové súbory</h3>
+    <p>
+      Tieto súbory existujú <strong>len v Docker verzii</strong> a nemajú ekvivalent
+      v pôvodnom Windows projekte.
+    </p>
+    <ul>
+      <li>
+        <code>Dockerfile</code> — inštrukcie pre zostavenie Docker image
+        (podrobne popísaný v <a href="#kapitola1">Kapitole 1</a>)
+      </li>
+      <li>
+        <code>.dockerignore</code> — zoznam súborov a priečinkov,
+        ktoré Docker pri builde ignoruje (<code>bin/</code>, <code>obj/</code>,
+        <code>wwwroot/lib/</code> atď.)
+      </li>
+    </ul>
+  </div>
+
+  <!-- ─── Súhrn ─────────────────────────────────────────── -->
+  <div class="card">
+    <h3>Súhrn všetkých rozdielov</h3>
+    <table>
+      <tr><th>Súbor</th><th>Zmena</th><th>Dôvod</th></tr>
+      <tr>
+        <td><code>.csproj</code></td>
+        <td>Pridaný balík <code>OpenCvSharp4.official.runtime.linux-x64</code>, aktualizovaná verzia</td>
+        <td>OpenCV potrebuje natívne Linux knižnice (.so) v kontajneri</td>
+      </tr>
+      <tr>
+        <td><code>Program.cs</code></td>
+        <td>Vypnuté <code>app.UseHttpsRedirection()</code></td>
+        <td>Kontajner nemá HTTPS certifikát, HTTPS rieši reverse proxy</td>
+      </tr>
+      <tr>
+        <td><code>appsettings.json</code></td>
+        <td>Kestrel URL z <code>localhost</code> na <code>0.0.0.0</code></td>
+        <td>Kontajner musí počúvať na všetkých rozhraniach, nie len loopback</td>
+      </tr>
+      <tr>
+        <td><code>RoiController.cs</code></td>
+        <td>Pridaný <code>_configRoot.Reload()</code> po zápise JSON</td>
+        <td>FileSystemWatcher nespoľahlivo funguje na bind-mountovaných súboroch v Linuxe</td>
+      </tr>
+      <tr>
+        <td><code>PipelineController.cs</code></td>
+        <td>Pridaný <code>_configRoot.Reload()</code> po zápise JSON (6 metód)</td>
+        <td>Rovnaký dôvod ako RoiController</td>
+      </tr>
+      <tr>
+        <td><code>Dockerfile</code></td>
+        <td>Nový súbor</td>
+        <td>Definícia Docker image (len Docker verzia)</td>
+      </tr>
+      <tr>
+        <td><code>.dockerignore</code></td>
+        <td>Nový súbor</td>
+        <td>Vynechanie nepotrebných súborov z Docker buildu (len Docker verzia)</td>
+      </tr>
+      <tr>
+        <td>Ostatné súbory</td>
+        <td colspan="2" style="color:#388e3c; font-weight:600;">Identické — bez zmien</td>
+      </tr>
+    </table>
+  </div>
+
+</main>
+
+<footer>
+  GUIVideoProcessing.Web &nbsp;·&nbsp; Dokumentácia nasadenia &nbsp;·&nbsp; Máj 2026
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,10 @@
+bin/
+obj/
+.vs/
+logs/
+*.user
+*.suo
+Dockerfile
+docker-compose.yml
+.dockerignore
+wwwroot/lib/

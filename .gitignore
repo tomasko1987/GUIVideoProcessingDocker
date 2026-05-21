@@ -1,0 +1,17 @@
+## Build output
+bin/
+obj/
+
+## Visual Studio
+.vs/
+*.user
+*.suo
+
+## Logs
+logs/
+
+## Citlivé údaje - nepatria na GitHub
+appsettings.json
+
+## Frontend knižnice (generované)
+wwwroot/lib/
