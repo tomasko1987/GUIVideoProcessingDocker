@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GUIVideoProcessing.Web – Architektúra kódu</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f4f6f9;
+      color: #2c3e50;
+      line-height: 1.75;
+    }
+
+    header {
+      background: #1a2a3a;
+      color: #fff;
+      padding: 40px 60px;
+    }
+    header h1 { font-size: 2rem; margin-bottom: 6px; }
+    header p  { color: #90a4ae; font-size: 0.95rem; }
+
+    nav {
+      background: #253545;
+      padding: 14px 60px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    nav a { color: #90caf9; text-decoration: none; font-size: 0.88rem; white-space: nowrap; }
+    nav a:hover { color: #fff; }
+
+    main { max-width: 1000px; margin: 40px auto; padding: 0 24px 80px; }
+
+    h2 {
+      font-size: 1.5rem;
+      color: #1a2a3a;
+      border-left: 5px solid #1976d2;
+      padding-left: 14px;
+      margin: 52px 0 20px;
+    }
+    h3 { font-size: 1.1rem; color: #1565c0; margin: 28px 0 10px; }
+    h4 { font-size: 0.95rem; color: #37474f; margin: 18px 0 6px; font-weight: 600; }
+    p  { margin-bottom: 12px; }
+    ul, ol { margin: 8px 0 12px 24px; }
+    li { margin-bottom: 5px; }
+
+    .card {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      padding: 28px 32px;
+      margin-bottom: 24px;
+    }
+
+    pre {
+      background: #1e2a35;
+      color: #e0f2f1;
+      border-radius: 6px;
+      padding: 16px 20px;
+      overflow-x: auto;
+      font-size: 0.83rem;
+      line-height: 1.6;
+      margin: 10px 0 16px;
+    }
+    code { font-family: 'Cascadia Code', 'Consolas', monospace; font-size: 0.88em; }
+    pre code { color: inherit; font-size: inherit; }
+
+    .badge {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 2px 9px;
+      border-radius: 12px;
+      margin: 2px 3px 2px 0;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      vertical-align: middle;
+    }
+    .b-service    { background: #1565c0; color: #fff; }
+    .b-controller { background: #6a1b9a; color: #fff; }
+    .b-hub        { background: #00695c; color: #fff; }
+    .b-page       { background: #e65100; color: #fff; }
+    .b-bg         { background: #c62828; color: #fff; }
+
+    .note {
+      background: #e3f2fd;
+      border-left: 4px solid #1976d2;
+      border-radius: 0 6px 6px 0;
+      padding: 12px 16px;
+      margin: 12px 0;
+      font-size: 0.9rem;
+    }
+    .warn {
+      background: #fff3e0;
+      border-left: 4px solid #f57c00;
+      border-radius: 0 6px 6px 0;
+      padding: 12px 16px;
+      margin: 12px 0;
+      font-size: 0.9rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0 20px;
+      font-size: 0.87rem;
+    }
+    th { background: #1976d2; color: #fff; padding: 10px 14px; text-align: left; }
+    td { padding: 9px 14px; border-bottom: 1px solid #e0e0e0; vertical-align: top; }
+    tr:nth-child(even) td { background: #f9f9f9; }
+
+    /* Architecture diagram */
+    .arch {
+      background: #1e2a35;
+      border-radius: 8px;
+      padding: 28px 32px;
+      margin: 16px 0 24px;
+      font-family: 'Cascadia Code', 'Consolas', monospace;
+      font-size: 0.82rem;
+      color: #e0f2f1;
+      line-height: 2;
+      overflow-x: auto;
+    }
+    .arch .green  { color: #80cbc4; }
+    .arch .blue   { color: #90caf9; }
+    .arch .yellow { color: #fff176; }
+    .arch .orange { color: #ffcc80; }
+    .arch .gray   { color: #90a4ae; }
+
+    /* Pipeline steps */
+    .pipeline {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      margin: 16px 0;
+    }
+    .pipe-step {
+      display: flex;
+      align-items: stretch;
+      gap: 0;
+    }
+    .pipe-num {
+      background: #1976d2;
+      color: #fff;
+      width: 36px;
+      min-width: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.85rem;
+    }
+    .pipe-arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      min-width: 36px;
+      color: #90a4ae;
+      font-size: 1.2rem;
+    }
+    .pipe-body {
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-left: none;
+      flex: 1;
+      padding: 12px 16px;
+    }
+    .pipe-body strong { display: block; color: #1565c0; margin-bottom: 2px; }
+    .pipe-connector {
+      width: 36px;
+      min-width: 36px;
+      display: flex;
+      justify-content: center;
+    }
+    .pipe-connector::before {
+      content: '';
+      width: 2px;
+      background: #1976d2;
+    }
+
+    footer { text-align: center; color: #90a4ae; font-size: 0.82rem; padding: 30px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>GUIVideoProcessing.Web – Architektúra kódu</h1>
+  <p>Podrobná dokumentácia štruktúry, tried a dátového toku &nbsp;·&nbsp; Máj 2026</p>
+</header>
+
+<nav>
+  <a href="#prehlaad">1. Prehľad</a>
+  <a href="#diagram">2. Diagram</a>
+  <a href="#mjpeg">3. MjpegCaptureService</a>
+  <a href="#pipeline">4. ImagePipelineService</a>
+  <a href="#influx">5. InfluxWriterService</a>
+  <a href="#hub">6. StreamHub</a>
+  <a href="#controllers">7. Controllers</a>
+  <a href="#program">8. Program.cs</a>
+  <a href="#endpoints">9. API Endpoints</a>
+  <a href="#tok">10. Dátový tok</a>
+</nav>
+
+<main>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <h2 id="prehlaad">1. Prehľad aplikácie</h2>
+
+  <div class="card">
+    <p>
+      <strong>GUIVideoProcessing.Web</strong> je ASP.NET Core webová aplikácia ktorá číta
+      MJPEG video stream z ESP32-CAM kamery, spracúva každý snímok pomocou OpenCV
+      (detekcia oblasti, binarizácia, morfológia), rozpoznáva číslice na 7-segmentovom
+      displeji (ONNX neural network alebo algoritmický 7-seg dekóder) a výsledky zobrazuje
+      v prehliadači v reálnom čase cez SignalR. Rozpoznané hodnoty sa zapisujú do InfluxDB.
+    </p>
+
+    <h3>Technológie</h3>
+    <table>
+      <tr><th>Technológia</th><th>Použitie</th></tr>
+      <tr><td>ASP.NET Core 9</td><td>Web framework, DI kontajner, Kestrel HTTP server</td></tr>
+      <tr><td>OpenCvSharp4</td><td>Spracovanie obrazu (filter, threshold, morphology, connected components)</td></tr>
+      <tr><td>ONNX Runtime</td><td>Inference neurálnej siete pre rozpoznávanie číslic</td></tr>
+      <tr><td>SignalR</td><td>Real-time push notifikácie zo servera do prehliadača (WebSocket)</td></tr>
+      <tr><td>InfluxDB.Client</td><td>Zápis časových radov rozpoznaných hodnôt do InfluxDB</td></tr>
+      <tr><td>Serilog</td><td>Štruktúrované logovanie do konzoly a rotujúcich súborov</td></tr>
+      <tr><td>Razor Pages</td><td>HTML fronted (Index stránka s GUI ovládaním)</td></tr>
+    </table>
+
+    <h3>Typy tried</h3>
+    <p>
+      <span class="badge b-service">Service</span> Triedy v <code>Services/</code> — hlavná logika aplikácie<br>
+      <span class="badge b-controller">Controller</span> Triedy v <code>Controllers/</code> — HTTP API endpointy<br>
+      <span class="badge b-hub">Hub</span> Triedy v <code>Hubs/</code> — SignalR real-time komunikácia<br>
+      <span class="badge b-page">Page</span> Triedy v <code>Pages/</code> — Razor HTML stránky<br>
+      <span class="badge b-bg">BackgroundService</span> Beží automaticky na pozadí od štartu aplikácie
+    </p>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <h2 id="diagram">2. Architektúrny diagram</h2>
+
+  <div class="card">
+    <div class="arch">
+<span class="gray">┌─────────────────────────────────────────────────────────────────┐</span>
+<span class="gray">│                        ESP32-CAM kamera                        │</span>
+<span class="gray">│                   http://192.168.50.96:81/stream               │</span>
+<span class="gray">└───────────────────────────┬─────────────────────────────────────┘</span>
+                            <span class="gray">│  MJPEG stream (HTTP)</span>
+                            <span class="gray">▼</span>
+<span class="blue">┌───────────────────────────────────────────────────────────────┐</span>
+<span class="blue">│              MjpegCaptureService  (BackgroundService)         │</span>
+<span class="blue">│  • Číta HTTP stream                                           │</span>
+<span class="blue">│  • Parsuje JPEG framy (SOI/EOI bajty)                         │</span>
+<span class="blue">│  • Ukladá posledný frame → _lastFrameBytes                    │</span>
+<span class="blue">│  • Fire-and-forget → ImagePipelineService                     │</span>
+<span class="blue">└──────────────┬──────────────────────────────┬─────────────────┘</span>
+               <span class="gray">│ JPEG bajty</span>                  <span class="gray">│ GetLastFrame()</span>
+               <span class="gray">▼</span>                             <span class="gray">▼</span>
+<span class="green">┌──────────────────────────┐   ┌──────────────────────────────┐</span>
+<span class="green">│  ImagePipelineService    │   │     StreamController         │</span>
+<span class="green">│  1. BGR→Grayscale        │   │     GET /stream              │</span>
+<span class="green">│  2. Bilateral filter     │   │     → MJPEG do prehliadača   │</span>
+<span class="green">│  3. CLAHE kontrast       │   │                              │</span>
+<span class="green">│  4. Adaptive threshold   │   │     GET /cleaned             │</span>
+<span class="green">│  5. Morphology           │   │     GET /left                │</span>
+<span class="green">│  6. Connected Components │   │     GET /right               │</span>
+<span class="green">│  7. Split L/P            │   └──────────────────────────────┘</span>
+<span class="green">│  8. ONNX / 7-Seg         │</span>
+<span class="green">└────┬──────────┬───────────┘</span>
+     <span class="gray">│ výsledky  │ enqueue()</span>
+     <span class="gray">▼</span>           <span class="gray">▼</span>
+<span class="yellow">┌──────────────┐  ┌─────────────────────────────┐</span>
+<span class="yellow">│   StreamHub  │  │    InfluxWriterService       │</span>
+<span class="yellow">│  (SignalR)   │  │    (BackgroundService)       │</span>
+<span class="yellow">│  NewReading  │  │  • ConcurrentQueue           │</span>
+<span class="yellow">│  → prehliadač│  │  • Asynchrónny zápis do DB   │</span>
+<span class="yellow">└──────┬───────┘  └────────────┬────────────────┘</span>
+       <span class="gray">│ WebSocket</span>               <span class="gray">│ HTTP API</span>
+       <span class="gray">▼</span>                        <span class="gray">▼</span>
+<span class="orange">┌──────────────────┐    ┌──────────────────────────────┐</span>
+<span class="orange">│   Prehliadač     │    │       InfluxDB               │</span>
+<span class="orange">│   (Index.cshtml) │    │  bucket: Boiler_Temperature  │</span>
+<span class="orange">│   Číslice L / P  │    └──────────────────────────────┘</span>
+<span class="orange">│   Graf hodnôt    │</span>
+<span class="orange">└──────────────────┘</span>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <h2 id="mjpeg">3. MjpegCaptureService</h2>
+
+  <div class="card">
+    <p>
+      <span class="badge b-service">Service</span>
+      <span class="badge b-bg">BackgroundService</span>
+      &nbsp;<code>Services/MjpegCaptureService.cs</code>
+    </p>
+    <p>
+      Základná slučka celej aplikácie. Pripája sa na HTTP MJPEG stream ESP32-CAM kamery,
+      číta bajty v reálnom čase, parsuje ich na jednotlivé JPEG snímky a distribuuje ich
+      ostatným komponentom.
+    </p>
+
+    <h3>Čo je MJPEG stream</h3>
+    <p>
+      MJPEG (Motion JPEG) je HTTP stream kde server posiela jeden JPEG za druhým bez zastavenia.
+      Každý JPEG začína bajtmi <code>0xFF 0xD8 0xFF</code> (SOI — Start Of Image) a končí
+      <code>0xFF 0xD9</code> (EOI — End Of Image). Aplikácia číta surové bajty zo siete
+      a hľadá tieto markery pre extrakciu kompletného snímku.
+    </p>
+
+    <h3>Kľúčové polia</h3>
+    <table>
+      <tr><th>Pole</th><th>Typ</th><th>Popis</th></tr>
+      <tr><td><code>_lastFrameBytes</code></td><td><code>byte[]?</code></td><td>Posledný kompletný JPEG frame; čítaný z /stream endpointu</td></tr>
+      <tr><td><code>_frameLock</code></td><td><code>Lock</code></td><td>Thread-safe ochrana _lastFrameBytes (písanie vs. čítanie)</td></tr>
+      <tr><td><code>_httpClient</code></td><td><code>HttpClient</code></td><td>Static singleton pre stream; InfiniteTimeout (stream je nekonečný)</td></tr>
+      <tr><td><code>_controlHttpClient</code></td><td><code>HttpClient</code></td><td>Posielanie príkazov na kameru (/control endpoint); 3s timeout</td></tr>
+    </table>
+
+    <h3>Hlavná slučka (ExecuteAsync)</h3>
+    <p>Má dve vnorené slučky:</p>
+    <ol>
+      <li><strong>Vonkajšia reconnect slučka</strong> — beží pokiaľ beží aplikácia. Pri chybe alebo výpadku počká (lineárny backoff 1s → 2s → ... → 60s) a skúsi znova</li>
+      <li><strong>Vnútorná read slučka</strong> — číta bajty zo streamu. Per-frame timeout (5s). Pri vypršaní alebo EOF vyskočí do vonkajšej slučky</li>
+    </ol>
+
+    <h3>Parsovanie JPEG</h3>
+    <p>
+      Bajty sa akumulujú v 4 MB bufferi. Pre každú dávku sa volajú:
+    </p>
+    <ul>
+      <li><code>FindSOI()</code> — hľadá <code>0xFF 0xD8 0xFF</code> (začiatok JPEG)</li>
+      <li><code>FindEOI()</code> — hľadá <code>0xFF 0xD9</code> (koniec JPEG)</li>
+    </ul>
+    <p>
+      Ak je nájdený kompletný JPEG (SOI aj EOI), extrahuje sa, uloží do <code>_lastFrameBytes</code>
+      a odovzdá pipeline. Buffer sa posunie doľava (spotrebovaná časť sa zahodí).
+    </p>
+
+    <h3>Fire-and-forget pipeline</h3>
+    <pre><code>_ = _pipeline.ProcessFrameAsync(jpegBytes, token);</code></pre>
+    <p>
+      Pipeline sa volá asynchrónne — capture loop nečaká na jej dokončenie. Dôvod: OpenCV
+      spracovanie trvá ~50–200ms, kamera posiela framy každých ~33ms. Keby sme čakali,
+      stratili by sme framy. Výnimky z pipeline sa chytia vnútri <code>ProcessFrameAsync</code>.
+    </p>
+
+    <h3>Nastavenia kamery (SendCameraSettingsAsync)</h3>
+    <p>
+      Po každom úspešnom TCP pripojení (vrátane reconnectu) sa na kameru pošlú nastavenia
+      cez <code>GET http://&lt;IP&gt;/control?var=...&amp;val=...</code>.
+      ESP32-CAM po hardvérovom reštarte má predvolené hodnoty — táto funkcia ich obnoví.
+    </p>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <h2 id="pipeline">4. ImagePipelineService</h2>
+
+  <div class="card">
+    <p>
+      <span class="badge b-service">Service</span>
+      &nbsp;<code>Services/ImagePipelineService.cs</code>
+    </p>
+    <p>
+      Srdce aplikácie. Spracúva každý JPEG frame pomocou OpenCV, rozpoznáva číslice
+      a distribuuje výsledky do SignalR, InfluxDB a HTTP endpointov.
+    </p>
+
+    <h3>Pipeline — 11 krokov</h3>
+    <div class="pipeline">
+      <div class="pipe-step">
+        <div class="pipe-num">1</div>
+        <div class="pipe-body">
+          <strong>BGR → Grayscale</strong>
+          ESP32-CAM posiela farebný BGR obraz. Pre spracovanie číslic potrebujeme 1-kanálový grayscale.
+          <code>Cv2.CvtColor(roi, gray, BGR2GRAY)</code>
+        </div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-connector"></div>
+        <div style="flex:1"></div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">2</div>
+        <div class="pipe-body">
+          <strong>Bilateral filter</strong>
+          Edge-preserving smoothing — znižuje šum, ale zachová ostré hrany segmentov.
+          Na rozdiel od Gaussian blur nezmaže hranice číslic.
+          Parametre: <code>BilateralD</code>, <code>BilateralSigmaColor</code>, <code>BilateralSigmaSpace</code>
+        </div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-connector"></div>
+        <div style="flex:1"></div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">3</div>
+        <div class="pipe-body">
+          <strong>CLAHE — Contrast Limited Adaptive Histogram Equalization</strong>
+          Lokálne zvyšuje kontrast — číslice budú zreteľnejšie aj pri nerovnomernom osvetlení.
+          Parametre: <code>CLAHEClipLimit</code>, <code>CLAHETileGridSizeX/Y</code>
+        </div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-connector"></div>
+        <div style="flex:1"></div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">4</div>
+        <div class="pipe-body">
+          <strong>Adaptive Threshold — binarizácia</strong>
+          Každý pixel sa stane buď čierny (0) alebo biely (255). Prah sa počíta lokálne
+          pre každú oblasť — robustné pri nerovnomernom osvetlení. Číslice = čierne, pozadie = biele.
+          Parametre: <code>AdaptiveThresholdBlockSize</code>, <code>AdaptiveThresholdC</code>
+        </div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-connector"></div>
+        <div style="flex:1"></div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">5</div>
+        <div class="pipe-body">
+          <strong>Morphology — Open + Close</strong>
+          Open (erózia → dilatácia) = odstráni malé bodky a šum.
+          Close (dilatácia → erózia) = vyplní malé diery v čísliciach.
+          Parametre: <code>MorphologyKernelSize</code>, <code>MorphologyOpenIterations</code>, <code>MorphologyCloseIterations</code>
+        </div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-connector"></div>
+        <div style="flex:1"></div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">6</div>
+        <div class="pipe-body">
+          <strong>Connected Components — filtrovanie malých objektov</strong>
+          Nájde všetky súvislé biele oblasti. Oblasti menšie ako <code>MinArea</code> pixelov
+          sa zahodia ako šum. Výsledok = cleaned obraz obsahujúci len číslice.
+        </div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-connector"></div>
+        <div style="flex:1"></div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">7</div>
+        <div class="pipe-body">
+          <strong>Split — rozdelenie na ľavú a pravú číslicu</strong>
+          ROI sa rozdelí na dve časti: ľavú číslicu (<code>FromLeft</code> % šírky od ľava)
+          a pravú číslicu (<code>FromRight</code> % šírky od prava). Výrezy sa ukladajú
+          pre <code>/left</code> a <code>/right</code> endpointy.
+        </div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-connector"></div>
+        <div style="flex:1"></div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">8</div>
+        <div class="pipe-body">
+          <strong>Rozpoznávanie — ONNX alebo SevenSegment</strong>
+          Podľa <code>RecognitionAlgorithm</code> v konfigurácii sa použije jeden z algoritmov.
+          Výsledok: číslo 0–9 alebo <code>null</code> (nerozpoznané → zobrazí sa <code>?</code>).
+        </div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-connector"></div>
+        <div style="flex:1"></div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">9</div>
+        <div class="pipe-body">
+          <strong>SignalR Push</strong>
+          Výsledky sa pushujú cez SignalR (udalosť <code>NewReading</code>) všetkým
+          pripojeným prehliadačom. Fire-and-forget — pipeline sa nezdržuje čakaním.
+        </div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-connector"></div>
+        <div style="flex:1"></div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">10</div>
+        <div class="pipe-body">
+          <strong>Export trénovacích príkladov (voliteľné)</strong>
+          Ak <code>StoreSample=true</code>, uloží 64×96 px PNG výrezy do
+          <code>logs/examples/{0-9,N}/</code>. Slúžia na ďalší tréning ONNX modelu.
+        </div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-connector"></div>
+        <div style="flex:1"></div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">11</div>
+        <div class="pipe-body">
+          <strong>InfluxDB Enqueue</strong>
+          Hodnota sa vloží do front radu (<code>ConcurrentQueue</code>) pre asynchrónny
+          zápis do InfluxDB cez <code>InfluxWriterService</code>.
+        </div>
+      </div>
+    </div>
+
+    <h3>ROI — Region of Interest</h3>
+    <p>
+      Nie celý obraz sa spracúva — iba obdĺžnik kde sú číslice. Poloha a rozmer
+      sú definované v percentách celkového rozlíšenia snímku:
+    </p>
+    <table>
+      <tr><th>Parameter</th><th>Popis</th></tr>
+      <tr><td><code>ROIX / ROIY</code></td><td>Ľavý horný roh ROI (% šírky / % výšky)</td></tr>
+      <tr><td><code>ROIWidth / ROIHeight</code></td><td>Rozmer ROI (% šírky / % výšky)</td></tr>
+    </table>
+
+    <h3>Interval vyhodnocovania</h3>
+    <p>
+      Pipeline sa nevolá pri každom frame — to by zbytočne zaťažovalo CPU.
+      Rozpoznávanie prebieha každých <code>NumEvalIntervalSeconds</code> sekúnd.
+      Medzi vyhodnoteniami sa framy ukladajú do <code>_lastFrameBytes</code> (pre /stream)
+      ale pipeline sa nespúšťa.
+    </p>
+
+    <h3>ONNX rozpoznávanie (RecognizeDigit)</h3>
+    <p>
+      Model očakáva vstup tvaru <code>[1, 1, 98, 64]</code> — jeden greyscale obraz 64×98 px,
+      normalizovaný na 0.0–1.0. Výstup je 10 logitov (jedna hodnota pre každú číslicu 0–9).
+      Aplikuje sa Softmax a vyberie sa číslica s najvyššou pravdepodobnosťou.
+      Ak je pravdepodobnosť pod <code>OnnxMinConfidence</code>, vráti <code>null</code>.
+    </p>
+
+    <h3>SevenSegment rozpoznávanie (DecodeSingle7SegDigit)</h3>
+    <p>
+      Algoritmický dekóder — rozdelí obraz číslice na 7 oblastí (segmenty a, b, c, d, e, f, g)
+      a pre každý zistí či je "zapnutý" (pomer bielych pixelov ≥ <code>SegmentOnThreshold</code>).
+      Výsledná bitmaska sa porovná so slovníkom všetkých 10 číslic.
+    </p>
+    <pre><code>  aaaaa
+ f     b
+  ggggg
+ e     c
+  ddddd</code></pre>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <h2 id="influx">5. InfluxWriterService</h2>
+
+  <div class="card">
+    <p>
+      <span class="badge b-service">Service</span>
+      <span class="badge b-bg">BackgroundService</span>
+      &nbsp;<code>Services/InfluxWriterService.cs</code>
+    </p>
+    <p>
+      Asynchrónny zápis rozpoznaných hodnôt do InfluxDB. Funguje na princípe
+      producent-konzument: <code>ImagePipelineService</code> vkladá hodnoty do fronty,
+      <code>InfluxWriterService</code> ich vyberá a zapisuje do databázy.
+    </p>
+
+    <h3>Prečo asynchrónny front?</h3>
+    <p>
+      Zápis do InfluxDB je sieťová operácia (HTTP request) — môže trvať desiatky ms
+      alebo zlyhať. Keby sme čakali priamo v pipeline, spomalili by sme rozpoznávanie.
+      Front (<code>ConcurrentQueue</code>) oddeľuje produkciu od zápisu.
+    </p>
+
+    <h3>Mechanizmus synchronizácie</h3>
+    <ul>
+      <li><code>ConcurrentQueue&lt;Reading&gt;</code> — thread-safe front hodnôt</li>
+      <li><code>SemaphoreSlim _signal</code> — pipeline zavolá <code>Release()</code> pri vložení, writer čaká na <code>WaitAsync()</code></li>
+    </ul>
+    <p>Writer sa nezobudí zbytočne — čaká presne na každú novú hodnotu.</p>
+
+    <h3>Reconnect logika</h3>
+    <p>
+      Ak zápis zlyhá (InfluxDB nedostupná), service počká <code>ReconnectDelaySeconds</code>
+      sekúnd, ping-ne server a skúsi znova. Prechody connected/disconnected sa logujú.
+    </p>
+
+    <h3>Record Reading</h3>
+    <pre><code>public sealed record Reading(
+    DateTime TimestampUtc,
+    int? LeftDigit,
+    int? RightDigit,
+    string Value,
+    string Source);</code></pre>
+    <p>
+      <code>Source</code> = tag z konfigurácie (<code>Pipeline:SourceTag</code>) —
+      umožňuje rozlíšiť viacero zariadení v jednej InfluxDB databáze.
+    </p>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <h2 id="hub">6. StreamHub (SignalR)</h2>
+
+  <div class="card">
+    <p>
+      <span class="badge b-hub">Hub</span>
+      &nbsp;<code>Hubs/StreamHub.cs</code>
+    </p>
+    <p>
+      SignalR Hub udržuje trvalé WebSocket spojenia medzi serverom a prehliadačmi.
+      Server môže kedykoľvek pushnúť správu všetkým pripojeným klientom.
+    </p>
+
+    <h3>Udalosti</h3>
+    <table>
+      <tr><th>Udalosť</th><th>Smer</th><th>Popis</th></tr>
+      <tr><td><code>NewReading</code></td><td>Server → prehliadač</td><td>Nová rozpoznaná hodnota (LeftDigit, RightDigit, Value, Timestamp)</td></tr>
+      <tr><td><code>OnConnectedAsync</code></td><td>—</td><td>Volané pri pripojení klienta; loguje ConnectionId</td></tr>
+      <tr><td><code>OnDisconnectedAsync</code></td><td>—</td><td>Volané pri odpojení klienta; loguje ConnectionId a prípadnú chybu</td></tr>
+    </table>
+
+    <h3>Ako sa volá z ImagePipelineService</h3>
+    <pre><code>_ = _hub.Clients.All.SendAsync("NewReading",
+    leftDigit,
+    rightDigit,
+    $"{leftStr}{rightStr}",
+    timestamp,
+    token);</code></pre>
+    <p>
+      <code>Clients.All</code> = pošli všetkým pripojeným prehliadačom naraz.
+      Fire-and-forget (<code>_ =</code>) — pipeline nečaká na potvrdenie doručenia.
+    </p>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <h2 id="controllers">7. Controllers</h2>
+
+  <div class="card">
+    <h3>StreamController &nbsp;<span class="badge b-controller">Controller</span></h3>
+    <p><code>Controllers/StreamController.cs</code></p>
+    <p>Poskytuje HTTP endpointy pre obrazové dáta.</p>
+    <table>
+      <tr><th>Endpoint</th><th>Popis</th></tr>
+      <tr><td><code>GET /stream</code></td><td>Nepretržitý MJPEG stream do prehliadača (<code>multipart/x-mixed-replace</code>). Posiela framy každých 33ms (~30 FPS)</td></tr>
+      <tr><td><code>GET /cleaned</code></td><td>Posledný spracovaný frame po OpenCV pipeline (pred splitom). Statický JPEG.</td></tr>
+      <tr><td><code>GET /left</code></td><td>Posledný výrez ľavej číslice. Statický JPEG.</td></tr>
+      <tr><td><code>GET /right</code></td><td>Posledný výrez pravej číslice. Statický JPEG.</td></tr>
+    </table>
+
+    <h3>RoiController &nbsp;<span class="badge b-controller">Controller</span></h3>
+    <p><code>Controllers/RoiController.cs</code></p>
+    <p>Správa polohy a veľkosti ROI — číta/zapisuje do <code>appsettings.json</code>.</p>
+    <table>
+      <tr><th>Endpoint</th><th>Popis</th></tr>
+      <tr><td><code>GET /api/roi</code></td><td>Vráti aktuálne ROIX, ROIY, ROIWidth, ROIHeight</td></tr>
+      <tr><td><code>POST /api/roi/move?dir=left|right|up|down</code></td><td>Posunie ROI o 1% v danom smere</td></tr>
+      <tr><td><code>POST /api/roi/resize?dir=wider|narrower|taller|shorter</code></td><td>Zmení veľkosť ROI o 1%</td></tr>
+    </table>
+
+    <h3>PipelineController &nbsp;<span class="badge b-controller">Controller</span></h3>
+    <p><code>Controllers/PipelineController.cs</code></p>
+    <p>Nastavenia OpenCV pipeline a algoritmu rozpoznávania — zapisuje do <code>appsettings.json</code>.</p>
+    <table>
+      <tr><th>Endpoint</th><th>Popis</th></tr>
+      <tr><td><code>GET/POST /api/pipeline/bilateral</code></td><td>Parametre Bilateral filtra (D, SigmaColor, SigmaSpace)</td></tr>
+      <tr><td><code>GET/POST /api/pipeline/clahe</code></td><td>Parametre CLAHE (ClipLimit, TileGridSize)</td></tr>
+      <tr><td><code>GET/POST /api/pipeline/algorithm</code></td><td>Algoritmus (ONNX / SevenSegment), konfidencia, interval</td></tr>
+      <tr><td><code>GET/POST /api/pipeline/threshold</code></td><td>Parametre Adaptive Threshold (BlockSize, C)</td></tr>
+      <tr><td><code>GET/POST /api/pipeline/morphology</code></td><td>Parametre Morphology + MinArea</td></tr>
+      <tr><td><code>GET/POST /api/pipeline/split</code></td><td>Deliaci bod ľavej/pravej číslice (FromLeft, FromRight)</td></tr>
+    </table>
+
+    <div class="note">
+      Po každom POST do <code>appsettings.json</code> sa zavolá <code>_configRoot.Reload()</code>
+      — zabezpečuje okamžité obnovenie konfigurácie v pamäti bez reštartu (dôležité pri Docker bind monte).
+    </div>
+
+    <h3>ReadingsController &nbsp;<span class="badge b-controller">Controller</span></h3>
+    <p><code>Controllers/ReadingsController.cs</code></p>
+    <table>
+      <tr><th>Endpoint</th><th>Popis</th></tr>
+      <tr><td><code>GET /api/readings?hours=N</code></td><td>Vráti posledných N hodín meraní z InfluxDB ako JSON. Default: 1 hodina, max: 24.</td></tr>
+    </table>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <h2 id="program">8. Program.cs — konfigurácia aplikácie</h2>
+
+  <div class="card">
+    <p>
+      Vstupný bod aplikácie. Konfiguruje Serilog, registruje všetky služby do DI kontajnera
+      a zostavuje HTTP pipeline (middleware).
+    </p>
+
+    <h3>Registrácia služieb (DI)</h3>
+    <pre><code>// ImagePipelineService — Singleton (jedna inštancia pre celú app)
+builder.Services.AddSingleton&lt;ImagePipelineService&gt;();
+
+// MjpegCaptureService — Singleton + BackgroundService
+// Singleton = StreamController dostane tú istú inštanciu čo beží na pozadí
+builder.Services.AddSingleton&lt;MjpegCaptureService&gt;();
+builder.Services.AddHostedService(sp =&gt;
+    sp.GetRequiredService&lt;MjpegCaptureService&gt;());
+
+// InfluxWriterService — Singleton + BackgroundService
+builder.Services.AddSingleton&lt;InfluxWriterService&gt;();
+builder.Services.AddHostedService(sp =&gt;
+    sp.GetRequiredService&lt;InfluxWriterService&gt;());</code></pre>
+
+    <div class="note">
+      <strong>Prečo dvojitá registrácia (AddSingleton + AddHostedService)?</strong><br>
+      <code>AddHostedService</code> sám o sebe vytvorí novú inštanciu — iná ako tá ktorú
+      dostane Controller. <code>AddSingleton</code> zabezpečí jednu zdieľanú inštanciu.
+      <code>AddHostedService</code> si ju potom vypýta cez <code>GetRequiredService</code>.
+    </div>
+
+    <h3>HTTP Middleware pipeline</h3>
+    <table>
+      <tr><th>Middleware</th><th>Účel</th></tr>
+      <tr><td><code>UseExceptionHandler</code></td><td>V produkcii zobrazí chybovú stránku namiesto stack trace</td></tr>
+      <tr><td><code>UseHsts</code></td><td>HTTP Strict Transport Security hlavičky</td></tr>
+      <tr><td><code>UseRouting</code></td><td>Zistí na akú URL patrí request</td></tr>
+      <tr><td><code>UseAuthorization</code></td><td>Autorizácia (zatiaľ nepoužívaná)</td></tr>
+      <tr><td><code>UseStaticFiles</code></td><td>Statické súbory z <code>wwwroot/</code> (CSS, JS, obrázky)</td></tr>
+      <tr><td><code>MapRazorPages</code></td><td>Razor stránky (Index, Error, Privacy)</td></tr>
+      <tr><td><code>MapHub("/hub")</code></td><td>SignalR WebSocket endpoint</td></tr>
+      <tr><td><code>MapControllers</code></td><td>API Controllers (Stream, ROI, Pipeline, Readings)</td></tr>
+    </table>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <h2 id="endpoints">9. Kompletný zoznam API Endpointov</h2>
+
+  <div class="card">
+    <table>
+      <tr><th>Metóda</th><th>URL</th><th>Trieda</th><th>Popis</th></tr>
+      <tr><td>GET</td><td><code>/stream</code></td><td>StreamController</td><td>MJPEG video stream z kamery</td></tr>
+      <tr><td>GET</td><td><code>/cleaned</code></td><td>StreamController</td><td>Posledný cleaned frame (JPEG)</td></tr>
+      <tr><td>GET</td><td><code>/left</code></td><td>StreamController</td><td>Výrez ľavej číslice (JPEG)</td></tr>
+      <tr><td>GET</td><td><code>/right</code></td><td>StreamController</td><td>Výrez pravej číslice (JPEG)</td></tr>
+      <tr><td>GET</td><td><code>/api/roi</code></td><td>RoiController</td><td>Aktuálne ROI hodnoty</td></tr>
+      <tr><td>POST</td><td><code>/api/roi/move?dir=</code></td><td>RoiController</td><td>Posun ROI</td></tr>
+      <tr><td>POST</td><td><code>/api/roi/resize?dir=</code></td><td>RoiController</td><td>Zmena veľkosti ROI</td></tr>
+      <tr><td>GET</td><td><code>/api/pipeline/bilateral</code></td><td>PipelineController</td><td>Bilateral parametre</td></tr>
+      <tr><td>POST</td><td><code>/api/pipeline/bilateral</code></td><td>PipelineController</td><td>Nastav Bilateral</td></tr>
+      <tr><td>GET</td><td><code>/api/pipeline/clahe</code></td><td>PipelineController</td><td>CLAHE parametre</td></tr>
+      <tr><td>POST</td><td><code>/api/pipeline/clahe</code></td><td>PipelineController</td><td>Nastav CLAHE</td></tr>
+      <tr><td>GET</td><td><code>/api/pipeline/algorithm</code></td><td>PipelineController</td><td>Algoritmus rozpoznávania</td></tr>
+      <tr><td>POST</td><td><code>/api/pipeline/algorithm</code></td><td>PipelineController</td><td>Nastav algoritmus</td></tr>
+      <tr><td>GET</td><td><code>/api/pipeline/threshold</code></td><td>PipelineController</td><td>Threshold parametre</td></tr>
+      <tr><td>POST</td><td><code>/api/pipeline/threshold</code></td><td>PipelineController</td><td>Nastav Threshold</td></tr>
+      <tr><td>GET</td><td><code>/api/pipeline/morphology</code></td><td>PipelineController</td><td>Morphology parametre</td></tr>
+      <tr><td>POST</td><td><code>/api/pipeline/morphology</code></td><td>PipelineController</td><td>Nastav Morphology</td></tr>
+      <tr><td>GET</td><td><code>/api/pipeline/split</code></td><td>PipelineController</td><td>Split hodnoty</td></tr>
+      <tr><td>POST</td><td><code>/api/pipeline/split</code></td><td>PipelineController</td><td>Nastav Split</td></tr>
+      <tr><td>GET</td><td><code>/api/readings?hours=N</code></td><td>ReadingsController</td><td>História meraní z InfluxDB</td></tr>
+      <tr><td>WS</td><td><code>/hub</code></td><td>StreamHub</td><td>SignalR WebSocket endpoint</td></tr>
+    </table>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <h2 id="tok">10. Kompletný dátový tok</h2>
+
+  <div class="card">
+    <p>Chronologický postup spracovania jedného frame od kamery po prehliadač:</p>
+    <ol>
+      <li><strong>ESP32-CAM</strong> posiela JPEG framy cez HTTP MJPEG stream na porte 81</li>
+      <li><strong>MjpegCaptureService</strong> číta surové bajty, hľadá SOI/EOI markery a extrahuje kompletný JPEG</li>
+      <li>JPEG sa uloží do <code>_lastFrameBytes</code> — <strong>StreamController /stream</strong> ho zobrazuje v prehliadači ako live video</li>
+      <li><strong>ImagePipelineService.ProcessFrameAsync()</strong> sa zavolá fire-and-forget</li>
+      <li>Z JPEG sa vyreže <strong>ROI</strong> (región záujmu kde sú číslice)</li>
+      <li>Každých N sekúnd sa spustí <strong>RunPipeline()</strong> na ThreadPool vlákne</li>
+      <li>OpenCV kroky 1–6 transformujú ROI na čistý binárny obraz (<strong>cleaned</strong>)</li>
+      <li>Cleaned sa uloží → <strong>/cleaned endpoint</strong> ho zobrazuje v prehliadači</li>
+      <li>Cleaned sa rozdelí na <strong>ľavý a pravý výrez</strong> → <strong>/left</strong> a <strong>/right</strong> endpointy</li>
+      <li><strong>ONNX alebo SevenSegment</strong> rozpozná číslicu v každom výreze</li>
+      <li>Výsledok sa pushne cez <strong>SignalR</strong> do všetkých prehliadačov (udalosť <code>NewReading</code>)</li>
+      <li>Výsledok sa vloží do <strong>ConcurrentQueue</strong> pre InfluxDB</li>
+      <li><strong>InfluxWriterService</strong> ho asynchrónne zapíše do <strong>InfluxDB</strong></li>
+      <li>Prehliadač prijme SignalR správu a aktualizuje zobrazené číslice a graf</li>
+    </ol>
+  </div>
+
+</main>
+
+<footer>
+  GUIVideoProcessing.Web &nbsp;·&nbsp; Dokumentácia architektúry &nbsp;·&nbsp; Máj 2026
+</footer>
+
+</body>
+</html>
