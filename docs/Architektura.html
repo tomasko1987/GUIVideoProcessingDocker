@@ -206,6 +206,7 @@
   <a href="#program">8. Program.cs</a>
   <a href="#endpoints">9. API Endpoints</a>
   <a href="#tok">10. Dátový tok</a>
+  <a href="#gui">11. GUI</a>
 </nav>
 
 <main>
@@ -780,6 +781,334 @@ builder.Services.AddHostedService(sp =&gt;
       <li><strong>InfluxWriterService</strong> ho asynchrónne zapíše do <strong>InfluxDB</strong></li>
       <li>Prehliadač prijme SignalR správu a aktualizuje zobrazené číslice a graf</li>
     </ol>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <h2 id="gui">11. GUI — webové rozhranie</h2>
+
+  <div class="card">
+    <p>
+      Webové rozhranie je implementované ako Razor Page (<code>Pages/Index.cshtml</code>).
+      Komunikuje so serverom cez dve kanály:
+    </p>
+    <ul>
+      <li><strong>REST API (fetch)</strong> — načítanie a ukladanie nastavení (parametre pipeline, ROI)</li>
+      <li><strong>SignalR (WebSocket)</strong> — príjem rozpoznaných číslic v reálnom čase</li>
+    </ul>
+    <p>
+      Stránka sa skladá z dvoch hlavných oblastí: <strong>horný riadok</strong> (stream + číslice)
+      a <strong>spodná tab oblasť</strong> (nastavenia + graf).
+    </p>
+  </div>
+
+  <!-- ─── Horný riadok ──────────────────────────────────────── -->
+  <div class="card">
+    <h3>Horný riadok — RAW Stream + číslice</h3>
+
+    <h4>RAW Stream (ľavý panel)</h4>
+    <p>
+      Zobrazuje živý MJPEG video stream z kamery cez <code>&lt;img src="/stream"&gt;</code>.
+      Prehliadač sám obnovuje obraz — nie je potrebný JavaScript.
+    </p>
+    <p>
+      Nad streamom je nakreslený <strong>zelený obdĺžnik ROI</strong> pomocou
+      <code>&lt;canvas&gt;</code> položeného absolútne nad obrázkom. Obdĺžnik sa
+      automaticky aktualizuje po každom posune alebo zmene veľkosti ROI.
+      Pri zmene veľkosti okna prehliadača (<code>ResizeObserver</code>) sa obdĺžnik
+      prepočíta a prekreslí.
+    </p>
+
+    <h4>Tlačidlá posunu ROI (šípky)</h4>
+    <table>
+      <tr><th>Tlačidlo</th><th>Akcia</th><th>API volanie</th><th>Parameter</th></tr>
+      <tr><td>←</td><td>Posun ROI doľava o 1 %</td><td><code>POST /api/roi/move?dir=left</code></td><td><code>ROIX −= 1</code></td></tr>
+      <tr><td>↑</td><td>Posun ROI hore o 1 %</td><td><code>POST /api/roi/move?dir=up</code></td><td><code>ROIY −= 1</code></td></tr>
+      <tr><td>↓</td><td>Posun ROI dole o 1 %</td><td><code>POST /api/roi/move?dir=down</code></td><td><code>ROIY += 1</code></td></tr>
+      <tr><td>→</td><td>Posun ROI doprava o 1 %</td><td><code>POST /api/roi/move?dir=right</code></td><td><code>ROIX += 1</code></td></tr>
+    </table>
+
+    <h4>Tlačidlá zmeny veľkosti ROI</h4>
+    <table>
+      <tr><th>Tlačidlo</th><th>Akcia</th><th>API volanie</th><th>Parameter</th></tr>
+      <tr><td>W+</td><td>Rozšíriť ROI o 1 %</td><td><code>POST /api/roi/resize?dir=wider</code></td><td><code>ROIWidth += 1</code></td></tr>
+      <tr><td>W−</td><td>Zúžiť ROI o 1 %</td><td><code>POST /api/roi/resize?dir=narrower</code></td><td><code>ROIWidth −= 1</code></td></tr>
+      <tr><td>H+</td><td>Zvýšiť ROI o 1 %</td><td><code>POST /api/roi/resize?dir=taller</code></td><td><code>ROIHeight += 1</code></td></tr>
+      <tr><td>H−</td><td>Znížiť ROI o 1 %</td><td><code>POST /api/roi/resize?dir=shorter</code></td><td><code>ROIHeight −= 1</code></td></tr>
+    </table>
+    <div class="note">
+      Každé kliknutie na tlačidlo odošle POST request, server zmení hodnotu v
+      <code>appsettings.json</code> a vráti nové ROI súradnice. Frontend okamžite
+      prekreslí zelený obdĺžnik bez čakania na ďalší refresh.
+    </div>
+
+    <h4>Panel číslic (pravý panel)</h4>
+    <p>
+      Zobrazuje ľavú (<strong>L</strong>) a pravú (<strong>P</strong>) číslicu:
+    </p>
+    <ul>
+      <li><strong>Obrázok výrezu</strong> — malý JPEG z <code>/left</code> a <code>/right</code> endpointov,
+          automaticky obnovovaný každé <strong>2 sekundy</strong> (cache-busting cez <code>?t=timestamp</code>)</li>
+      <li><strong>Rozpoznaná hodnota</strong> — veľké číslo 0–9 alebo <code>?</code> ak pod minimálnou konfidenciu.
+          Aktualizuje sa okamžite cez <strong>SignalR</strong> (udalosť <code>NewReading</code>)</li>
+    </ul>
+  </div>
+
+  <!-- ─── Tab bar ───────────────────────────────────────────── -->
+  <div class="card">
+    <h3>Tab navigácia</h3>
+    <p>
+      Pod horným riadkom je lišta s 7 tabmi (pill tlačidlá). Kliknutím na tab sa:
+    </p>
+    <ol>
+      <li>Skryje predchádzajúci obsah</li>
+      <li>Zobrazí nový obsah</li>
+      <li>Automaticky načítajú aktuálne hodnoty zo servera (<code>fetch GET</code>)</li>
+    </ol>
+
+    <table>
+      <tr><th>Tab</th><th>Obsah</th><th>API GET</th></tr>
+      <tr><td><strong>Algoritmus</strong></td><td>Výber algoritmu, konfidencia, interval vyhodnocovania</td><td><code>/api/pipeline/algorithm</code></td></tr>
+      <tr><td><strong>Graf</strong></td><td>Časový graf rozpoznaných hodnôt z InfluxDB</td><td><code>/api/readings?hours=N</code></td></tr>
+      <tr><td><strong>Bilateral</strong></td><td>Parametre Bilateral filtra</td><td><code>/api/pipeline/bilateral</code></td></tr>
+      <tr><td><strong>CLAHE</strong></td><td>Parametre CLAHE kontrastu</td><td><code>/api/pipeline/clahe</code></td></tr>
+      <tr><td><strong>Threshold</strong></td><td>Parametre Adaptive Threshold</td><td><code>/api/pipeline/threshold</code></td></tr>
+      <tr><td><strong>Morphology</strong></td><td>Parametre morfológie + MinArea</td><td><code>/api/pipeline/morphology</code></td></tr>
+      <tr><td><strong>Split</strong></td><td>Deliaci bod ľavej a pravej číslice</td><td><code>/api/pipeline/split</code></td></tr>
+    </table>
+  </div>
+
+  <!-- ─── Tab: Algoritmus ───────────────────────────────────── -->
+  <div class="card">
+    <h3>Tab: Algoritmus</h3>
+    <p>Nastavenie spôsobu rozpoznávania číslic.</p>
+
+    <table>
+      <tr><th>Prvok</th><th>Typ</th><th>Parameter</th><th>Popis</th></tr>
+      <tr>
+        <td><strong>Algoritmus</strong></td>
+        <td>Dropdown</td>
+        <td><code>RecognitionAlgorithm</code></td>
+        <td>
+          <code>ONNX</code> — neurálna sieť (presnejšie, vyžaduje model.onnx)<br>
+          <code>SevenSegment</code> — algoritmický dekóder 7-seg displeja (bez modelu)
+        </td>
+      </tr>
+      <tr>
+        <td><strong>Min. confidence</strong></td>
+        <td>Číslo (0.0–1.0)</td>
+        <td><code>OnnxMinConfidence</code></td>
+        <td>
+          Viditeľné len pri ONNX. Minimálna pravdepodobnosť (0–100 %) aby sa číslica
+          považovala za rozpoznanú. Pod touto hodnotou sa zobrazí <code>?</code>.
+          Vyššia hodnota = menej chybných rozpoznaní ale viac <code>?</code>.
+        </td>
+      </tr>
+      <tr>
+        <td><strong>Eval interval (s)</strong></td>
+        <td>Číslo (1–3600)</td>
+        <td><code>NumEvalIntervalSeconds</code></td>
+        <td>
+          Každých N sekúnd sa spustí pipeline a rozpoznávanie.
+          Hodnota 1 = každú sekundu. Vyššia hodnota = menej zápisov do InfluxDB.
+        </td>
+      </tr>
+      <tr>
+        <td><strong>Seg. threshold</strong></td>
+        <td>Číslo (0.05–1.0)</td>
+        <td><code>SegmentOnThreshold</code></td>
+        <td>
+          Viditeľné len pri SevenSegment. Minimálny pomer bielych pixelov v segmente
+          aby sa segment považoval za "zapnutý". Nižšia hodnota = citlivejší dekóder.
+        </td>
+      </tr>
+    </table>
+
+    <div class="note">
+      Parametre <strong>Min. confidence</strong> a <strong>Seg. threshold</strong>
+      sa striedajú podľa zvoleného algoritmu — vždy je viditeľný len relevantný parameter.
+    </div>
+  </div>
+
+  <!-- ─── Tab: Graf ─────────────────────────────────────────── -->
+  <div class="card">
+    <h3>Tab: Graf</h3>
+    <p>
+      Časový priebeh rozpoznaných hodnôt načítaný z InfluxDB. Zobrazuje sa ako
+      čiarový graf (Chart.js) s časovou osou X a hodnotovou osou Y.
+    </p>
+
+    <table>
+      <tr><th>Prvok</th><th>Akcia</th></tr>
+      <tr><td><strong>1 hod</strong></td><td>Zobraziť dáta za poslednú 1 hodinu</td></tr>
+      <tr><td><strong>3 hod</strong></td><td>Zobraziť dáta za posledné 3 hodiny</td></tr>
+      <tr><td><strong>12 hod</strong></td><td>Zobraziť dáta za posledných 12 hodín</td></tr>
+      <tr><td><strong>↻ (refresh)</strong></td><td>Manuálne obnoviť graf (zachová aktívny časový rozsah)</td></tr>
+    </table>
+
+    <p>
+      Ak InfluxDB nie je dostupná, zobrazí sa varovanie
+      <em>"Databáza nie je dostupná"</em> červenou farbou.
+    </p>
+  </div>
+
+  <!-- ─── Tab: Bilateral ────────────────────────────────────── -->
+  <div class="card">
+    <h3>Tab: Bilateral</h3>
+    <p>Nastavenie Bilateral filtra — redukcia šumu pri zachovaní hrán segmentov.</p>
+    <table>
+      <tr><th>Parameter</th><th>Rozsah</th><th>appsettings kľúč</th><th>Popis</th></tr>
+      <tr>
+        <td><strong>D (diameter)</strong></td><td>1–31</td><td><code>BilateralD</code></td>
+        <td>Priemer oblasti pixelov použitých pri filtrovaní. Väčšia hodnota = silnejší filter, pomalší výpočet.</td>
+      </tr>
+      <tr>
+        <td><strong>SigmaColor</strong></td><td>1–200</td><td><code>BilateralSigmaColor</code></td>
+        <td>Rozsah farebných hodnôt ktoré sa zpriemerujú. Väčšia hodnota = viac farieb sa zmieša.</td>
+      </tr>
+      <tr>
+        <td><strong>SigmaSpace</strong></td><td>1–200</td><td><code>BilateralSigmaSpace</code></td>
+        <td>Priestorový rozsah — ako ďaleko od pixelu sa berú susedia. Väčšia hodnota = väčšia oblasť.</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- ─── Tab: CLAHE ────────────────────────────────────────── -->
+  <div class="card">
+    <h3>Tab: CLAHE</h3>
+    <p>Nastavenie lokálneho zvyšovania kontrastu — číslice budú zreteľnejšie pri nerovnomernom osvetlení.</p>
+    <table>
+      <tr><th>Parameter</th><th>Rozsah</th><th>appsettings kľúč</th><th>Popis</th></tr>
+      <tr>
+        <td><strong>ClipLimit</strong></td><td>0.5–40</td><td><code>CLAHEClipLimit</code></td>
+        <td>Maximálny zosilňovací faktor kontrastu. Vyššia hodnota = silnejší kontrast, ale viac šumu.</td>
+      </tr>
+      <tr>
+        <td><strong>TileGridSize X</strong></td><td>2–32</td><td><code>CLAHETileGridSizeX</code></td>
+        <td>Počet dlaždíc v horizontálnom smere. Menšia hodnota = väčšie dlaždice = globálnejší efekt.</td>
+      </tr>
+      <tr>
+        <td><strong>TileGridSize Y</strong></td><td>2–32</td><td><code>CLAHETileGridSizeY</code></td>
+        <td>Počet dlaždíc vo vertikálnom smere. Rovnaký princíp ako TileGridSize X.</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- ─── Tab: Threshold ────────────────────────────────────── -->
+  <div class="card">
+    <h3>Tab: Threshold</h3>
+    <p>
+      Nastavenie Adaptive Threshold — binarizácia obrazu (každý pixel = čierny alebo biely).
+      Prah sa počíta lokálne pre každú oblasť — robustné pri nerovnomernom osvetlení.
+    </p>
+    <table>
+      <tr><th>Parameter</th><th>Rozsah</th><th>appsettings kľúč</th><th>Popis</th></tr>
+      <tr>
+        <td><strong>Block Size</strong></td><td>3–999 (nepárne)</td><td><code>AdaptiveThresholdBlockSize</code></td>
+        <td>
+          Veľkosť oblasti okolo každého pixelu, z ktorej sa vypočíta lokálny prah.
+          Musí byť nepárne číslo. Väčšia hodnota = väčšia lokálna oblasť.
+          Server automaticky opraví párne číslo na nepárne.
+        </td>
+      </tr>
+      <tr>
+        <td><strong>C</strong></td><td>0–20</td><td><code>AdaptiveThresholdC</code></td>
+        <td>Konštanta odčítaná od vypočítaného prahu. Väčšia hodnota = tmavejší výsledok (menej bielych pixelov).</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- ─── Tab: Morphology ───────────────────────────────────── -->
+  <div class="card">
+    <h3>Tab: Morphology</h3>
+    <p>
+      Nastavenie morfologických operácií — čistenie binárneho obrazu od šumu
+      a vyplnenie dier v čísliciach.
+    </p>
+    <table>
+      <tr><th>Parameter</th><th>Rozsah</th><th>appsettings kľúč</th><th>Popis</th></tr>
+      <tr>
+        <td><strong>Kernel Size</strong></td><td>1–21 (nepárne)</td><td><code>MorphologyKernelSize</code></td>
+        <td>
+          Veľkosť štrukturovacieho elementu (štvorca). Väčší kernel = silnejší efekt.
+          Musí byť nepárne. Server automaticky opraví párne na nepárne.
+        </td>
+      </tr>
+      <tr>
+        <td><strong>Open Iterations</strong></td><td>1–10</td><td><code>MorphologyOpenIterations</code></td>
+        <td>Počet opakovaní operácie Open (erózia → dilatácia). Väčšia hodnota = agresívnejšie odstránenie šumu.</td>
+      </tr>
+      <tr>
+        <td><strong>Close Iterations</strong></td><td>1–10</td><td><code>MorphologyCloseIterations</code></td>
+        <td>Počet opakovaní operácie Close (dilatácia → erózia). Väčšia hodnota = lepšie vyplnenie dier.</td>
+      </tr>
+      <tr>
+        <td><strong>Min Area</strong></td><td>1–5000</td><td><code>MinArea</code></td>
+        <td>
+          Minimálna plocha (v pixeloch) súvislého bieleho objektu. Objekty menšie ako
+          táto hodnota sa zahodia ako šum. Väčšia hodnota = agresívnejšie čistenie.
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- ─── Tab: Split ────────────────────────────────────────── -->
+  <div class="card">
+    <h3>Tab: Split</h3>
+    <p>
+      Nastavenie deliaceho bodu — kde sa ROI rozdelí na ľavú a pravú číslicu.
+    </p>
+    <table>
+      <tr><th>Parameter</th><th>Rozsah</th><th>appsettings kľúč</th><th>Popis</th></tr>
+      <tr>
+        <td><strong>From Left (%)</strong></td><td>1–99 %</td><td><code>FromLeft</code></td>
+        <td>
+          Šírka ľavého výrezu v percentách celkovej šírky ROI.
+          Príklad: 49 % = ľavá číslica zaberá ľavých 49 % ROI.
+        </td>
+      </tr>
+      <tr>
+        <td><strong>From Right (%)</strong></td><td>1–99 %</td><td><code>FromRight</code></td>
+        <td>
+          Šírka pravého výrezu v percentách celkovej šírky ROI, počítaná od pravého okraja.
+          Príklad: 49 % = pravá číslica zaberá pravých 49 % ROI.
+        </td>
+      </tr>
+    </table>
+    <div class="note">
+      <strong>Príklad:</strong> ROI má šírku 100 px. FromLeft=49, FromRight=49.
+      Ľavý výrez = px 0–49, pravý výrez = px 51–100.
+      Stredný 1 px (px 50) nie je zahrnutý v žiadnom výreze — slúži ako medzera.
+    </div>
+  </div>
+
+  <!-- ─── SignalR + auto-refresh ────────────────────────────── -->
+  <div class="card">
+    <h3>Real-time aktualizácie</h3>
+
+    <h4>SignalR (WebSocket)</h4>
+    <p>
+      Pri načítaní stránky sa prehliadač pripojí na <code>/hub</code> cez WebSocket.
+      Server pushuje udalosť <code>NewReading</code> pri každom rozpoznaní.
+      Prehliadač okamžite aktualizuje zobrazené číslice L a P.
+      Pri strate spojenia sa automaticky reconnectuje (<code>withAutomaticReconnect()</code>).
+    </p>
+
+    <h4>Auto-refresh obrázkov číslic</h4>
+    <p>
+      Obrázky <code>/left</code> a <code>/right</code> sa obnovujú každé <strong>2 sekundy</strong>
+      pomocou <code>setInterval</code>. Aby prehliadač nestiahol obrázok z cache,
+      každá URL obsahuje aktuálny timestamp: <code>/left?t=1716987654321</code>.
+    </p>
+
+    <h4>ROI overlay</h4>
+    <p>
+      Zelený obdĺžnik ROI sa prekreslí:
+    </p>
+    <ul>
+      <li>Pri kliknutí na tlačidlo posunu alebo zmeny veľkosti (odpoveď servera obsahuje nové súradnice)</li>
+      <li>Pri zmene veľkosti okna prehliadača (<code>ResizeObserver</code> na <code>&lt;img&gt;</code>)</li>
+      <li>Po načítaní stránky (<code>fetchRoi()</code>)</li>
+    </ul>
   </div>
 
 </main>
