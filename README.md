@@ -1,31 +1,31 @@
 # GUIVideoProcessing.Web
 
-ASP.NET Core webová aplikácia pre spracovanie MJPEG video streamu z ESP32-CAM kamery. Rozpoznáva číslice na 7-segmentovom displeji pomocou ONNX neurálnej siete alebo algoritmického SevenSegment dekódera. Výsledky zobrazuje v reálnom čase cez SignalR a zapisuje do InfluxDB.
+ASP.NET Core web application for processing an MJPEG video stream from an ESP32-CAM camera. It recognises digits on a 7-segment display using either an ONNX neural network or an algorithmic SevenSegment decoder. Results are displayed in real time via SignalR and written to InfluxDB.
 
-## Technológie
+## Technologies
 
 - **ASP.NET Core 9** — web framework
-- **OpenCvSharp4** — spracovanie obrazu (filter, threshold, morphology)
-- **ONNX Runtime** — inference neurálnej siete
-- **SignalR** — real-time push notifikácie do prehliadača
-- **InfluxDB** — ukladanie časových radov rozpoznaných hodnôt
-- **Serilog** — logovanie do konzoly a súborov
-- **Docker / Ubuntu 22.04** — nasadenie
+- **OpenCvSharp4** — image processing (filter, threshold, morphology)
+- **ONNX Runtime** — neural network inference
+- **SignalR** — real-time push notifications to the browser
+- **InfluxDB** — time-series storage of recognised values
+- **Serilog** — logging to console and files
+- **Docker / Ubuntu 22.04** — deployment
 
-## Dokumentácia
+## Documentation
 
-Podrobná dokumentácia sa nachádza v priečinku [`docs/`](docs/):
+Detailed documentation is located in the [`docs/`](docs/) folder:
 
-- [`docs/dokumentacia.html`](docs/dokumentacia.html) — nasadenie, Dockerfile, appsettings.json, logy, Code Update
-- [`docs/architektura.html`](docs/architektura.html) — architektúra kódu, popis všetkých tried, pipeline, GUI, API endpointy
+- [`docs/dokumentacia.html`](docs/dokumentacia.html) — deployment, Dockerfile, appsettings.json, logs, Code Update
+- [`docs/architektura.html`](docs/architektura.html) — code architecture, description of all classes, pipeline, GUI, API endpoints
 
 ## Screenshots
 
-### Algoritmus
-![Algoritmus](docs/Algoritmus.png)
+### Algorithm
+![Algorithm](docs/Algoritmus.png)
 
-### Graf
-![Graf](docs/Graf.png)
+### Graph
+![Graph](docs/Graf.png)
 
 ### Bilateral
 ![Bilateral](docs/Bilateral.png)
